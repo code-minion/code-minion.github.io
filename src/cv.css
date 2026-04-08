@@ -617,10 +617,20 @@ a { color: inherit; text-decoration: none; }
   text-shadow: var(--glow-pink);
 }
 
+.header-exit-mobile {
+  display: none;
+  font-family: var(--font-head);
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  align-items: center;
+  gap: 5px;
+}
+
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .header-nav { display: none; }
   .right-sidebar { display: none; }
+  .header-exit-mobile { display: flex; }
   .projects-grid { grid-template-columns: 1fr; }
   .skills-layout { grid-template-columns: 1fr; }
   .mobile-nav { display: flex; }
