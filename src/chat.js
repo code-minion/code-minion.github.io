@@ -111,55 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') handleSend();
     });
 
-    // ---- Mobile Keyboard & Input Mirror Logic ----
+    // ---- Mobile Input Mirror Logic ----
     const mirror = document.getElementById('chat-input-mirror');
     const isMobile = window.matchMedia('(max-width: 768px)');
-    let isKeyboardOpen = false;
     
-    // Position the mirror and panel relative to the visual viewport
-    if (window.visualViewport) {
-        const handleResize = () => {
-            if (!isMobile.matches) return;
-            
-            const viewport = window.visualViewport;
-            // Height of the occluded area at the bottom
-            const keyboardHeight = window.innerHeight - viewport.height;
-            
-            if (keyboardHeight > 100) { 
-                isKeyboardOpen = true;
-                
-                // 1. Position the entire chat panel right above the keyboard
-                chatPanel.style.position = 'fixed';
-                chatPanel.style.bottom = `${keyboardHeight}px`;
-                chatPanel.style.height = '60vh'; // Constrain height so it doesn't push off screen
-                chatPanel.style.maxHeight = `${viewport.height - 20}px`;
-                
-                // 2. Position the mirror chip just above the input area
-                mirror.style.position = 'fixed';
-                // 60px is roughly the height of the input area + padding
-                mirror.style.bottom = `${keyboardHeight + 60}px`; 
-                mirror.style.left = '20px';
-                mirror.style.right = '20px';
-                mirror.style.width = 'auto';
-                
-                updateMirror();
-            } else {
-                isKeyboardOpen = false;
-                mirror.classList.remove('active');
-                // Reset panel to CSS defaults
-                chatPanel.style.position = '';
-                chatPanel.style.bottom = '';
-                chatPanel.style.height = '';
-                chatPanel.style.maxHeight = '';
-            }
-        };
-
-        window.visualViewport.addEventListener('resize', handleResize);
-        window.visualViewport.addEventListener('scroll', handleResize);
-    }
-
     function updateMirror() {
-        if (!isMobile.matches || !isKeyboardOpen) return;
+        if (!isMobile.matches) return;
         const text = chatInput.value;
         if (text) {
             mirror.innerText = text;
@@ -172,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput.addEventListener('input', updateMirror);
     
     chatInput.addEventListener('focus', () => {
-        if (isMobile.matches && isKeyboardOpen && chatInput.value) {
+        if (isMobile.matches && chatInput.value) {
             mirror.classList.add('active');
         }
     });
