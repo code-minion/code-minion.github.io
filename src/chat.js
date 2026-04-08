@@ -116,28 +116,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const isMobile = window.matchMedia('(max-width: 768px)');
     let isKeyboardOpen = false;
     
-    // Adjust panel position for mobile keyboard
+    // Position the mirror above the visual viewport (keyboard)
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
-            if (!isMobile.matches || !chatPanel.classList.contains('open')) return;
+            if (!isMobile.matches) return;
             
             const viewport = window.visualViewport;
             const currentKeyboardHeight = window.innerHeight - viewport.height;
             
-            if (currentKeyboardHeight > 100) { // Keyboard is likely open
+            if (currentKeyboardHeight > 100) { 
                 isKeyboardOpen = true;
-                // Push panel up
-                chatPanel.style.bottom = `${currentKeyboardHeight + 10}px`;
-                chatPanel.style.height = 'auto';
-                chatPanel.style.maxHeight = `${viewport.height - 20}px`;
-                updateMirror(); // Show mirror if there is text
+                // Position mirror fixed at the top of the calculated keyboard area
+                mirror.style.position = 'fixed';
+                mirror.style.bottom = `${currentKeyboardHeight + 10}px`;
+                mirror.style.left = '10px';
+                mirror.style.right = '10px';
+                mirror.style.width = 'auto';
+                updateMirror();
             } else {
                 isKeyboardOpen = false;
                 mirror.classList.remove('active');
-                // Reset to default mobile bottom
-                chatPanel.style.bottom = '120px';
-                chatPanel.style.height = '65vh';
-                chatPanel.style.maxHeight = '500px';
+                // Ensure panel styles are reset to CSS defaults
+                chatPanel.style.bottom = '';
+                chatPanel.style.height = '';
+                chatPanel.style.maxHeight = '';
             }
         });
     }
