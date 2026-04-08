@@ -233,12 +233,9 @@ async function loadModel() {
 
             // Phase 2: Diagnostics & State Caching
             model.traverse((node) => {
-
                 if (node.isMesh) {
                     node.castShadow = true;
                     node.receiveShadow = true;
-                    // Cache the materials (now capturing our overrides instead of default placeholders)
-                    originalMaterials.set(node.uuid, node.material.clone());
                 }
             });
 
@@ -438,46 +435,10 @@ function selectObject(obj) {
 
     console.log(`INTERACTION: Selected [${obj.name || 'ANONYMOUS'}]`);
 
-    // WIREFRAME HIGHLIGHTING
-    obj.traverse((node) => {
-        if (node.isMesh && node.geometry) {
-            // Apply a neon outline using EdgesGeometry
-            const edges = new THREE.EdgesGeometry(node.geometry, 15);
-            const line = new THREE.LineSegments(
-                edges,
-                new THREE.LineBasicMaterial({ color: 0x00d2ff, transparent: true, opacity: 0.8 })
-            );
-            line.isSelectionHelper = true;
-            node.add(line);
-
-            // Optionally dim the main material (visual polish)
-            if (node.material) {
-                node.material.transparent = true;
-                node.material.opacity = 0.5;
-            }
-        }
-    });
-
+    // Selection logic (no wireframe)
     displayObjectData(obj);
 }
-
 function clearSelection() {
-    if (selectedObject) {
-        selectedObject.traverse(node => {
-            // Remove selection helpers
-            const toRemove = [];
-            node.children.forEach(child => {
-                if (child.isSelectionHelper) toRemove.push(child);
-            });
-            toRemove.forEach(child => node.remove(child));
-
-            // Restore materials
-            if (node.isMesh && originalMaterials.has(node.uuid)) {
-                const original = originalMaterials.get(node.uuid);
-                node.material.copy(original);
-            }
-        });
-    }
     selectedObject = null;
     if (terminalContent) terminalContent.innerHTML = `<p class="empty-msg">AWAITING_SELECTION... CLICK MODEL TO INSPECT MESH UNITS.</p>`;
 }

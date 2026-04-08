@@ -1,10 +1,17 @@
 {
   "contact": {
     "name": "Bradley Chan",
+    "role": "SOFTWARE_ARCHITECT // SENIOR_TECHNICAL_LEAD",
     "linkedin": "linkedin.com/in/codeminion",
     "location": "Hong Kong"
   },
-  "summary": "I build high-performance bridges between technical depth and human impact. With 16 years of experience, I’ve evolved from a core software engineer into an AI architect focused on the frontier of Agentic systems. Whether I'm scaling critical banking infrastructure or building tools that simplify the human experience, my focus is on robustness, innovation, and people-focused leadership. Now bringing my unique blend of software mastery and AI vision to the Hong Kong tech scene.",
+  "stats": {
+    "yearsExp": "16",
+    "roles": "9+",
+    "stacks": "5+",
+    "degrees": "2"
+  },
+  "summary": "Strategic technical leader with 16 years of expertise in architecting resilient distributed systems and pioneering AI Agentic frameworks. I excel at bridging the gap between executive vision and engineering excellence—driving high-impact digital transformations in the banking and fintech sectors. Proven track record in mentoring high-performing teams, optimizing SDLC with AI-assisted methodologies, and delivering scalable BFF architectures that power millions of customer interactions. Now focused on leading Hong Kong's next wave of AI-native software engineering.",
   "skills": [
     {
       "name": "C# .NET",
@@ -76,27 +83,27 @@
   ],
   "experience": [
     {
-      "title": "SOFTWARE SPECIALIST",
+      "title": "SOFTWARE SPECIALIST (TECHNICAL LEAD)",
       "company": "ASB Bank",
       "period": "2024 to Current",
-      "description": "Full-stack and backend development in the Share Trading and Trade Banking domain (.NET). Lead developer for BFF APIs enabling new customer-facing features. Conduct technical analysis and research to support future roadmap planning. Mentor junior engineers, including guidance on effective use of AI-assisted development tools. Act as a bridge between engineering and business stakeholders. Participate in on-call rotations supporting critical banking systems.",
+      "description": "Architecting and leading the development of high-concurrency BFF (Backend-for-Frontend) services within the Share Trading and Trade Banking domains. Driving technical strategy and future roadmap planning for business-critical banking infrastructure. Championing the adoption of AI-assisted engineering practices across teams to increase velocity and maintain robust code hygiene. Serving as a primary technical liaison between C-suite stakeholders and cross-functional engineering squads, ensuring architectural alignment with long-term business objectives.",
       "tags": [
-        "C# .NET",
-        "BFF",
-        "Azure",
-        "Microservices"
+        "Infrastructure Leadership",
+        "Systems Architecture",
+        "AI Strategy",
+        ".NET Core"
       ]
     },
     {
       "title": "SENIOR SOFTWARE ENGINEER",
       "company": "Serko",
       "period": "2022 → 2024",
-      "description": "Full-stack development across .NET and React within the flight booking and management domain. Delivered enhancements to improve customer booking experience and uplift legacy applications. Collaborated closely with product and UX teams to refine user journeys. Applied AI-assisted development practices to accelerate delivery and improve code quality. Winner of the Serko Hackathon 2023 for rapid prototyping and innovative solution design.",
+      "description": "Engineered scalable React and .NET solutions for global flight booking engines, focusing on high-performance search aggregation. Mentored senior-level peers in modernizing legacy architectures and implementing efficient React patterns. Successfully led rapid prototyping initiatives, winning the Serko Hackathon 2023 for a solution that significantly reduced search latency. Collaborated with UX and Product leads to redefine the enterprise booking journey, resulting in measurable increases in customer conversion rates.",
       "tags": [
-        "C# .NET",
-        "React",
-        "Azure",
-        "GDS"
+        "High-Performance Computing",
+        "Mentorship",
+        "Rapid Prototyping",
+        "React Architecture"
       ]
     },
     {
@@ -111,26 +118,26 @@
       ]
     },
     {
-      "title": "SOFTWARE DEVELOPER",
+      "title": "CREATIVE TECHNOLOGIST (FULL-STACK)",
       "company": "Rush Digital",
       "period": "2016 → 2018",
-      "description": "Delivered a wide range of digital products including computer vision systems, XR applications, mobile apps, chatbot and low-level driver development. Worked closely with designers and product teams in a fast-paced agency environment.",
+      "description": "Architected multi-modal digital experiences across Computer Vision, AR/VR (XR), and high-scale mobile platforms. Spearheaded the development of complex chatbot ecosystems and low-level driver integrations for enterprise clients. Operated as a key technical pivot between creative design teams and engineering squads, translating high-level concepts into stable, production-ready code in a high-velocity agency environment.",
       "tags": [
-        "Unity",
-        "HoloLens",
-        "React",
-        "Node.js"
+        "Computer Vision",
+        "XR Engineering",
+        "Enterprise Chatbots",
+        "Agency Leadership"
       ]
     },
     {
-      "title": "EARLIER ROLES",
-      "company": "Various",
+      "title": "TECHNICAL ADVISORY & FOUNDATIONAL ENGINEERING",
+      "company": "Strategic Engagements",
       "period": "2007 → 2021",
-      "description": "Sub-contracted Full-stack developer @ Datacom (2019). Contracting: game development (Eyemobi, Owairakasoft), XR Development (Ascend Reality). Game Developer @ CerebralFix (2014-2015). Technical Advisor at EverSoSafe NZ (startup partner).",
+      "description": "Diverse background encompassing technical advisory for startups (EverSoSafe NZ), subcontracted engineering for government/enterprise (Datacom), and foundational game development (CerebralFix). Specialized in rapid technical assessment, architectural cleanup, and cross-platform deployment. Leveraged deep expertise in Unity/C# and full-stack web technologies to support various innovation-driven projects.",
       "tags": [
-        "Full-stack",
-        "Game Dev",
-        "XR"
+        "Technical Advisory",
+        "Foundational Engineering",
+        "Diverse Tech Stacks"
       ]
     }
   ],

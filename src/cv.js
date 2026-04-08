@@ -55,8 +55,9 @@ function renderData() {
 
     const heroBody = document.getElementById('hero-body');
     if (heroBody) {
+        const displayRole = (cvData.contact.role || cvData.targetRoles[0]).toUpperCase();
         heroBody.innerHTML = `
-            <p class="terminal-line"><span class="prompt">&gt;</span> INITIALIZING PROTOCOL: <span class="neon-pink">${cvData.contact.name.replace(' ', '_').toUpperCase()}.SYS</span> // ${cvData.targetRoles[0].toUpperCase()}</p>
+            <p class="terminal-line"><span class="prompt">&gt;</span> INITIALIZING PROTOCOL: <span class="neon-pink">${cvData.contact.name.replace(' ', '_').toUpperCase()}.SYS</span> // ${displayRole}</p>
             <p class="terminal-line"><span class="prompt">&gt;</span> OVERVIEW: <span class="neon-cyan">${cvData.summary}</span></p>
             <br>
             <p class="terminal-line"><a href="./plain.html" target="_blank" style="text-decoration:none; border:1px solid var(--pink); color:var(--pink); padding: 6px 12px; display:inline-block; font-size:0.8rem;">[ DOWNLOAD_PRINTABLE_PDF ]</a></p>
@@ -160,6 +161,17 @@ function renderData() {
         });
         html += `<br/><p class="terminal-line"><span class="prompt">&gt;</span> LANGUAGES: <span class="neon-cyan">${(cvData.languages || []).map(l => l.language || l).join(' // ')}</span></p>`;
         contactBody.innerHTML = html;
+    }
+
+    // Quick Stats & Footer
+    if (cvData.stats) {
+        if (document.getElementById('stat-years')) document.getElementById('stat-years').textContent = cvData.stats.yearsExp;
+        if (document.getElementById('stat-roles')) document.getElementById('stat-roles').textContent = cvData.stats.roles;
+        if (document.getElementById('stat-stacks')) document.getElementById('stat-stacks').textContent = cvData.stats.stacks;
+        if (document.getElementById('stat-degrees')) document.getElementById('stat-degrees').textContent = cvData.stats.degrees;
+    }
+    if (cvData.contact.role && document.getElementById('footer-role')) {
+        document.getElementById('footer-role').textContent = cvData.contact.role;
     }
 }
 
