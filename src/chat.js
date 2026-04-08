@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- Mobile Keyboard & Input Mirror Logic ----
     const mirror = document.getElementById('chat-input-mirror');
     const isMobile = window.matchMedia('(max-width: 768px)');
+    let isKeyboardOpen = false;
     
     // Adjust panel position for mobile keyboard
     if (window.visualViewport) {
@@ -121,14 +122,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isMobile.matches || !chatPanel.classList.contains('open')) return;
             
             const viewport = window.visualViewport;
-            const keyboardHeight = window.innerHeight - viewport.height;
+            const currentKeyboardHeight = window.innerHeight - viewport.height;
             
-            if (keyboardHeight > 100) { // Keyboard is likely open
+            if (currentKeyboardHeight > 100) { // Keyboard is likely open
+                isKeyboardOpen = true;
                 // Push panel up
-                chatPanel.style.bottom = `${keyboardHeight + 10}px`;
+                chatPanel.style.bottom = `${currentKeyboardHeight + 10}px`;
                 chatPanel.style.height = 'auto';
                 chatPanel.style.maxHeight = `${viewport.height - 20}px`;
+                updateMirror(); // Show mirror if there is text
             } else {
+                isKeyboardOpen = false;
+                mirror.classList.remove('active');
                 // Reset to default mobile bottom
                 chatPanel.style.bottom = '120px';
                 chatPanel.style.height = '65vh';
@@ -138,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateMirror() {
-        if (!isMobile.matches) return;
+        if (!isMobile.matches || !isKeyboardOpen) return;
         const text = chatInput.value;
         if (text) {
             mirror.innerText = text;
@@ -151,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput.addEventListener('input', updateMirror);
     
     chatInput.addEventListener('focus', () => {
-        if (isMobile.matches && chatInput.value) {
+        if (isMobile.matches && isKeyboardOpen && chatInput.value) {
             mirror.classList.add('active');
         }
     });
