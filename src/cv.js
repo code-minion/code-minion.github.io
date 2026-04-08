@@ -26,7 +26,7 @@ window.showSection = function(id) {
         }
     });
 
-    addTraceLog(`nav.goto(${id})`);
+    // addTraceLog(`nav.goto(${id})`);
     
     const contentArea = document.querySelector('.content-area');
     if(contentArea) contentArea.scrollTop = 0;
@@ -273,10 +273,12 @@ function addTraceLog(msg) {
     while(traceLog.children.length > 8) traceLog.removeChild(traceLog.firstChild);
 }
 
+/* 
 const traceMsgs = ['heap.gc()','cache.hit','auth.ok','api.call','render.frame','event.loop','ui.repaint'];
 setInterval(() => {
     addTraceLog(traceMsgs[Math.floor(Math.random() * traceMsgs.length)]);
 }, 3000);
+*/
 
 // INIT
 renderData();

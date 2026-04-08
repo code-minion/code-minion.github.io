@@ -190,7 +190,6 @@ function loadModel() {
                 // Hide Plane
                 if (node.name === 'Plane') {
                     node.visible = false;
-                    console.log('SYSTEM: Plane object hidden.');
                 }
 
                 // Code preset texturing
@@ -219,9 +218,7 @@ function loadModel() {
             });
 
             // Phase 2: Diagnostics & State Caching
-            console.log('--- SCENE GRAPH DIAGNOSTICS ---');
             model.traverse((node) => {
-                console.log(`[NODE] Name: '${node.name}' | Type: ${node.type}`);
 
                 if (node.isMesh) {
                     node.castShadow = true;
@@ -234,7 +231,6 @@ function loadModel() {
             // Animations
             const animList = document.getElementById('anim-list');
             if (gltf.animations && gltf.animations.length > 0) {
-                console.log('--- ANIMATION DIAGNOSTICS ---');
                 mixer = new THREE.AnimationMixer(model);
                 
                 // /* Disabled per user request - manual playback UI
@@ -242,7 +238,6 @@ function loadModel() {
                 // */
 
                 gltf.animations.forEach((clip) => {
-                    console.log(`[ANIM] Clip: '${clip.name}' | Duration: ${clip.duration.toFixed(2)}s`);
                     
                     // Auto-play all animations (User requested to revert to this behavior)
                     mixer.clipAction(clip).play();
@@ -274,7 +269,6 @@ function loadModel() {
             // Hide Loader
             loaderDiv.style.opacity = '0';
             setTimeout(() => loaderDiv.style.display = 'none', 500);
-            console.log('SYSTEM: Model loaded and ready.');
 
             // Auto-spawn the home billboard so it's visible immediately on load
             handleNavAction('home');
@@ -291,7 +285,6 @@ function loadModel() {
             }
         },
         (error) => {
-            console.error('SYSTEM_ERROR:', error);
             if (terminalContent) terminalContent.innerHTML = `<p class="neon-pink">ERROR: ${error.message}</p>`;
         }
     );
