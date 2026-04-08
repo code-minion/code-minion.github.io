@@ -111,10 +111,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') handleSend();
     });
 
-    // ---- Mobile Input Mirror Logic ----
+    // ---- Mobile Keyboard & Input Mirror Logic ----
     const mirror = document.getElementById('chat-input-mirror');
     const isMobile = window.matchMedia('(max-width: 768px)');
     
+    // Adjust panel position for mobile keyboard
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            if (!isMobile.matches || !chatPanel.classList.contains('open')) return;
+            
+            const viewport = window.visualViewport;
+            const keyboardHeight = window.innerHeight - viewport.height;
+            
+            if (keyboardHeight > 100) { // Keyboard is likely open
+                // Push panel up
+                chatPanel.style.bottom = `${keyboardHeight + 10}px`;
+                chatPanel.style.height = 'auto';
+                chatPanel.style.maxHeight = `${viewport.height - 20}px`;
+            } else {
+                // Reset to default mobile bottom
+                chatPanel.style.bottom = '120px';
+                chatPanel.style.height = '65vh';
+                chatPanel.style.maxHeight = '500px';
+            }
+        });
+    }
+
     function updateMirror() {
         if (!isMobile.matches) return;
         const text = chatInput.value;
@@ -136,6 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     chatInput.addEventListener('blur', () => {
         // Delay hide so we don't flash if user quickly taps again
-        setTimeout(() => mirror.classList.remove('active'), 200);
+        setTimeout(() => {
+            if (document.activeElement !== chatInput) {
+                mirror.classList.remove('active');
+            }
+        }, 200);
     });
 });
