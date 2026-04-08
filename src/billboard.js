@@ -332,7 +332,12 @@ export class Billboard {
                 } else {
                     this._pauseTimer = null;
                 }
-                this._renderFrame(this._scrollY);
+
+                // Throttle texture updates to ~30fps during scroll
+                if (!this._lastTextureUpdateTime || time - this._lastTextureUpdateTime > 0.033) {
+                    this._renderFrame(this._scrollY);
+                    this._lastTextureUpdateTime = time;
+                }
             }
         }
     }

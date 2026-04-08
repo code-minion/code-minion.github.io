@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { Billboard } from './billboard.js';
 import cvData from './cv-data.json';
 
@@ -8,12 +10,21 @@ import cvData from './cv-data.json';
 // THE_WEBSITE_CORE — src/3d.js
 // =============================================
 
-let scene, camera, renderer, controls, loader;
+let scene, camera, renderer, controls;
 let perspectiveCamera, orthographicCamera, isOrthographic = true;
 let model, mixer, selectedObject = null;
 let canvas, terminalContent, loadPct, loaderDiv, loadBar;
 let originalMaterials = new Map();
 let mainLight, ambientLight;
+
+// --- GLOBAL LOADERS (Singleton Pattern) ---
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
+gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+// ------------------------------------------
 
 // Effects & Billboards
 let codeMesh;
@@ -68,7 +79,7 @@ function init() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.minDistance = 2;
-    
+
     // Desktop vs Mobile target verticality
     if (window.innerWidth <= 768) {
         controls.target.set(3.8, 0.2, 21.2); // Shifted down to match desktop Y but stayed right on X
@@ -79,7 +90,7 @@ function init() {
 
     // Clamp User Controls
     controls.enablePan = false; // Disable right-hold-to-pan
-    
+
     // Restrict zoom levels strictly to ±20% (distance for perspective, zoom for orthographic)
     const dist = camera.position.distanceTo(controls.target);
     controls.minDistance = dist * 0.8;
@@ -91,7 +102,7 @@ function init() {
     const az = controls.getAzimuthalAngle();
     controls.minAzimuthAngle = az - 0.26;
     controls.maxAzimuthAngle = az + 0.26;
-    
+
     const pol = controls.getPolarAngle();
     controls.minPolarAngle = Math.max(0, pol - 0.18);
     controls.maxPolarAngle = Math.min(Math.PI, pol + 0.18);
@@ -103,8 +114,8 @@ function init() {
     mainLight = new THREE.DirectionalLight(0xffffff, 4.02);
     mainLight.position.set(-696, 288, -672);
     mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 2048;
-    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.mapSize.width = 1024;
+    mainLight.shadow.mapSize.height = 1024;
     mainLight.shadow.bias = 0;
     mainLight.shadow.normalBias = 0;
     mainLight.shadow.radius = 19.68;
@@ -167,11 +178,14 @@ function init() {
 }
 
 // ---- MODEL LOADING ----
-function loadModel() {
-    loader = new GLTFLoader();
+async function loadModel() {
+    // Ensure Meshopt is ready (some versions require this to prevent hangs)
+    if (MeshoptDecoder && MeshoptDecoder.ready) {
+        await MeshoptDecoder.ready;
+    }
 
-    loader.load(
-        './KIT_CHAN.glb',
+    gltfLoader.load(
+        './KIT_CHAN_OPT.glb',
         (gltf) => {
             model = gltf.scene;
             model.scale.setScalar(20); // Upscale: 1 unit → 20 units (≈ real-world metre scale)
@@ -232,13 +246,13 @@ function loadModel() {
             const animList = document.getElementById('anim-list');
             if (gltf.animations && gltf.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(model);
-                
+
                 // /* Disabled per user request - manual playback UI
                 // if (animList) animList.innerHTML = ''; // clear empty message
                 // */
 
                 gltf.animations.forEach((clip) => {
-                    
+
                     // Auto-play all animations (User requested to revert to this behavior)
                     mixer.clipAction(clip).play();
 
@@ -263,7 +277,7 @@ function loadModel() {
                     */
                 });
             } else {
-                if(animList) animList.innerHTML = '<p class="empty-msg">NO_ANIMATIONS_FOUND.</p>';
+                if (animList) animList.innerHTML = '<p class="empty-msg">NO_ANIMATIONS_FOUND.</p>';
             }
 
             // Hide Loader
@@ -276,16 +290,17 @@ function loadModel() {
         (xhr) => {
             if (xhr.total > 0) {
                 const pct = Math.min(100, Math.round((xhr.loaded / xhr.total) * 100));
-                loadPct.textContent = `${pct}%`;
-                loadBar.style.width = `${pct}%`;
+                if (loadPct) loadPct.innerText = pct + '%';
+                if (loadBar) loadBar.style.width = pct + '%';
             } else {
-                // Handling case where total size is unknown
-                loadPct.textContent = 'LOADING...';
-                loadBar.style.width = '100%';
+                if (loadPct) loadPct.innerText = 'LOADING...';
+                if (loadBar) loadBar.style.width = '100%';
             }
         },
         (error) => {
+            console.error('SYSTEM: loadModel ERROR:', error);
             if (terminalContent) terminalContent.innerHTML = `<p class="neon-pink">ERROR: ${error.message}</p>`;
+            if (loaderDiv) loaderDiv.classList.add('fade-out');
         }
     );
 }
@@ -294,8 +309,13 @@ function loadModel() {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let isHoveringInteractive = false;
+let lastRaycastTime = 0;
 
 function onPointerMove(event) {
+    const now = performance.now();
+    if (now - lastRaycastTime < 50) return; // Limit to 20fps for performance
+    lastRaycastTime = now;
+
     const rect = canvas.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -362,8 +382,8 @@ function onCanvasClick(event) {
     const billboardIntersects = raycaster.intersectObjects(billboardMeshes, false);
 
     if (billboardIntersects.length > 0) {
-        const hit    = billboardIntersects[0];
-        const bb     = hit.object.userData.billboard;
+        const hit = billboardIntersects[0];
+        const bb = hit.object.userData.billboard;
         if (bb) {
             // Per-row hit test for TABLE billboards
             if (bb.hitTest && hit.uv) {
@@ -572,8 +592,8 @@ function handleNavAction(action) {
         .addScaledVector(camRight, 5.2)   // push right in screen space
         .addScaledVector(camUp, 1.5);
 
-    const PW    = 4.0;   // panel width
-    const PH    = 2.8;   // panel height
+    const PW = 4.0;   // panel width
+    const PH = 2.8;   // panel height
     const ROW_H = 1.0;   // unused for projects (now a single table)
 
     switch (action) {
@@ -612,8 +632,8 @@ function handleNavAction(action) {
         }
         case 'contact': {
             const languages = cvData.languages.map(l => `- **${l.language}**: ${l.level}`).join('\n');
-            spawnBillboard(`## Establish Connection\n\n**LinkedIn**: ${cvData.contact.linkedin}\n**Loc**: ${cvData.contact.location}\n\n---\n## Languages\n${languages}\n\n---\nYou can also leave a message via my **AI Assistant** (click the chat icon or the character) and I will get back to you.`, basePos, { 
-                width: PW, 
+            spawnBillboard(`## Establish Connection\n\n**LinkedIn**: ${cvData.contact.linkedin}\n**Loc**: ${cvData.contact.location}\n\n---\n## Languages\n${languages}\n\n---\nYou can also leave a message via my **AI Assistant** (click the chat icon or the character) and I will get back to you.`, basePos, {
+                width: PW,
                 height: PH,
                 onClick: () => window.open(`https://${cvData.contact.linkedin}`, '_blank')
             });
@@ -654,7 +674,7 @@ function updateOrthographicFrustum() {
     const aspect = window.innerWidth / window.innerHeight;
     const distance = camera.position.distanceTo(controls.target);
     let d = distance * 0.4; // Scale frustum based on distance
-    
+
     // If portrait mode, scale the vertical frustum to preserve horizontal subject bounds
     if (aspect < 1) {
         d = d / aspect;
