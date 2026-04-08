@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Minion | Portfolio</title>
+    <link rel="stylesheet" href="./src/3d.css">
+    <link rel="stylesheet" href="./src/chat.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="glass-nav">
+        <div class="nav-container">
+            <div class="logo">CODE_MINION</div>
+            <ul class="nav-links">
+                <li><a href="#" class="nav-item active" data-action="home">HOME</a></li>
+                <li><a href="#" class="nav-item" data-action="projects">PROJECTS</a></li>
+                <li><a href="#" class="nav-item" data-action="skills">SKILLS</a></li>
+                <li><a href="#" class="nav-item" data-action="experience">EXPERIENCE</a></li>
+                <li><a href="#" class="nav-item" data-action="contact">CONTACT</a></li>
+                <li><a href="./cv.html" class="nav-item" data-action="cv">CV(FULL)</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Mobile Top Branding (hidden on desktop) -->
+    <div class="mobile-branding">
+        <span class="mb-name">BRADLEY CHAN</span>
+        <span class="mb-title">AI ARCHITECT & ENGINEER</span>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar (hidden on desktop) -->
+    <nav class="mobile-nav">
+        <button class="mobile-nav-btn active" data-action="home"><span class="mob-icon">🏠</span><span>HOME</span></button>
+        <button class="mobile-nav-btn" data-action="projects"><span class="mob-icon">🚀</span><span>PROJS</span></button>
+        <button class="mobile-nav-btn" data-action="skills"><span class="mob-icon">⚡</span><span>SKILLS</span></button>
+        <button class="mobile-nav-btn" data-action="experience"><span class="mob-icon">💼</span><span>EXP</span></button>
+        <button class="mobile-nav-btn" data-action="contact"><span class="mob-icon">📱</span><span>TALK</span></button>
+        <button class="mobile-nav-btn" data-action="cv"><span class="mob-icon">📄</span><span>CV</span></button>
+    </nav>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container">
+        <canvas id="three-canvas"></canvas>
+    </div>
+
+    <!-- UI Overlay for Inspections -->
+    <div id="ui-overlay">
+        <!-- 2D Overlay Panel For Mobile -->
+        <div id="mobile-overlay-panel" class="mobile-overlay hidden">
+            <div class="mobile-overlay-header">
+                <span class="mobile-overlay-title" id="mobile-overlay-title">INFO</span>
+                <button id="mobile-overlay-close">&times;</button>
+            </div>
+            <div class="mobile-overlay-body" id="mobile-overlay-content">
+                <!-- Content injected here -->
+            </div>
+        </div>
+
+        <!-- Debug UI disabled by user request (Unit Inspector)
+        <div class="selection-panel">
+            <div class="panel-header">UNIT_INSPECTOR</div>
+            <div id="mesh-data" class="terminal-content">
+                <p class="empty-msg">AWAITING_SELECTION... CLICK MODEL TO INSPECT MESH UNITS.</p>
+            </div>
+            <div class="panel-footer">
+                <button id="toggle-camera" class="neon-btn">TOGGLE_CAM</button>
+                <button id="clear-selection" class="neon-btn">CLEAR</button>
+            </div>
+        </div>
+        -->
+
+        <!-- Animations UI Panel (Disabled per user request)
+        <div class="selection-panel" style="bottom: auto; top: 100px; right: 30px;">
+            <div class="panel-header">ANIMATIONS</div>
+            <div id="anim-list" class="terminal-content" style="max-height: 250px; overflow-y: auto;">
+                <p class="empty-msg">NO_ANIMATIONS_FOUND.</p>
+            </div>
+        </div>
+        -->
+
+
+        <!-- Debug UI disabled by user request (Camera Overlay)
+        <div id="camera-debug" class="debug-panel">
+            CAMERA_POS: [0.00, 0.00, 0.00] | TARGET: [0.00, 0.00, 0.00]
+        </div>
+        -->
+
+        <!-- Loading Bar -->
+        <div id="loader" class="loader-container">
+            <div class="loader-content">
+                <div class="glitch-text">INITIALIZING_SYSTEM...</div>
+                <div class="progress-bar-bg">
+                    <div id="load-pct-bar" class="progress-bar-fill"></div>
+                </div>
+                <div id="load-pct" class="pct-text">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat UI Widget -->
+    <button id="chat-toggle">💬</button>
+
+    <div id="chat-panel">
+        <div class="chat-header">
+            <div class="chat-header-identity">
+                <img src="/myface.png" alt="CODEMINION_AI" class="chat-avatar">
+                <div class="chat-header-text">
+                    <span class="chat-title">CODEMINION_AI</span>
+                    <span class="chat-subtitle">AI Representative</span>
+                </div>
+            </div>
+            <button class="close-chat" id="close-chat">&times;</button>
+        </div>
+        <div id="chat-history">
+            <div class="chat-msg bot-msg">Hi! I'm CODEMINION_AI — Bradley's AI representative.<br><br>Ask me anything
+                about his skills, experience, or projects. You can also ask me to pass along a message to him!</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+            <button id="chat-send">SEND</button>
+        </div>
+    </div>
+
+    <script type="module" src="./src/3d.js"></script>
+    <script type="module" src="./src/chat.js"></script>
+</body>
+
+</html>

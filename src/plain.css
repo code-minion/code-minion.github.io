@@ -1,0 +1,229 @@
+:root {
+    --text-primary: #1a1a1a;
+    --text-secondary: #555555;
+    --text-tertiary: #888888;
+    --border-color: #eaeaea;
+    --bg-color: #ffffff;
+    --accent: #2563eb;
+    --page-width: 800px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-primary);
+    background-color: #f5f5f5;
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+}
+
+.cv-document {
+    max-width: var(--page-width);
+    margin: 40px auto;
+    background: var(--bg-color);
+    padding: 60px 80px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+.print-actions {
+    max-width: var(--page-width);
+    margin: 20px auto 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+}
+
+.print-actions button, .print-actions a {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    color: #333;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.print-actions button:hover, .print-actions a:hover {
+    background: #f9f9f9;
+}
+
+/* Typography */
+h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 35px 0 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+p {
+    margin-bottom: 15px;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+ul {
+    margin-bottom: 15px;
+    padding-left: 20px;
+}
+
+li {
+    margin-bottom: 5px;
+}
+
+/* Sections */
+.header-contact {
+    display: flex;
+    gap: 15px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 25px;
+}
+
+.summary {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 30px;
+}
+
+.entry {
+    margin-bottom: 25px;
+}
+.entry:last-child {
+    margin-bottom: 0;
+}
+
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.entry-subtitle {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.entry-date {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-family: monospace;
+}
+
+.entry-desc {
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.skill-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+}
+
+.skill-name {
+    font-weight: 500;
+}
+.skill-prof {
+    color: var(--text-tertiary);
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+.tag {
+    background: #f3f4f6;
+    color: #4b5563;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.page-break {
+    margin: 40px 0;
+    border-top: 1px dashed var(--border-color);
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background-color: #fff;
+        padding: 0;
+    }
+    .cv-document {
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        max-width: 100%;
+    }
+    .print-actions {
+        display: none;
+    }
+    .page-break {
+        margin: 0;
+        border: none;
+        page-break-before: always;
+        break-before: page;
+    }
+    @page {
+        margin: 2cm;
+    }
+}
+
+@media (max-width: 768px) {
+    .cv-document {
+        margin: 0;
+        padding: 30px 20px;
+        border-radius: 0;
+    }
+    .entry-header {
+        flex-direction: column;
+    }
+    .entry-date {
+        margin-top: 2px;
+    }
+}

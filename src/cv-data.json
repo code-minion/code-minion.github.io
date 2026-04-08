@@ -1,0 +1,312 @@
+{
+  "contact": {
+    "name": "Bradley Chan",
+    "linkedin": "linkedin.com/in/codeminion",
+    "location": "Hong Kong"
+  },
+  "summary": "I build high-performance bridges between technical depth and human impact. With 16 years of experience, I’ve evolved from a core software engineer into an AI architect focused on the frontier of Agentic systems. Whether I'm scaling critical banking infrastructure or building tools that simplify the human experience, my focus is on robustness, innovation, and people-focused leadership. Now bringing my unique blend of software mastery and AI vision to the Hong Kong tech scene.",
+  "skills": [
+    {
+      "name": "C# .NET",
+      "proficiency": "expert"
+    },
+    {
+      "name": "API design",
+      "proficiency": "expert"
+    },
+    {
+      "name": "Distributed systems",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "React",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Modern web development",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Prompt design",
+      "proficiency": "expert"
+    },
+    {
+      "name": "LLM API integration",
+      "proficiency": "expert"
+    },
+    {
+      "name": "Rapid prototyping with AI tools",
+      "proficiency": "expert"
+    },
+    {
+      "name": "AI development",
+      "proficiency": "expert"
+    },
+    {
+      "name": "BFF patterns",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Scalable systems",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Cloud fundamentals",
+      "proficiency": "intermediate"
+    },
+    {
+      "name": "Javascript",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Game development",
+      "proficiency": "intermediate"
+    }
+  ],
+  "targetRoles": [
+    "Senior Software Engineer",
+    "Backend Engineer",
+    "Full-stack Developer",
+    ".NET Developer",
+    "Technical Lead",
+    "Fintech Engineer",
+    "AI Integration Specialist",
+    "AI Developer",
+    "Software Architect"
+  ],
+  "experience": [
+    {
+      "title": "SOFTWARE SPECIALIST",
+      "company": "ASB Bank",
+      "period": "2024 to Current",
+      "description": "Full-stack and backend development in the Share Trading and Trade Banking domain (.NET). Lead developer for BFF APIs enabling new customer-facing features. Conduct technical analysis and research to support future roadmap planning. Mentor junior engineers, including guidance on effective use of AI-assisted development tools. Act as a bridge between engineering and business stakeholders. Participate in on-call rotations supporting critical banking systems.",
+      "tags": [
+        "C# .NET",
+        "BFF",
+        "Azure",
+        "Microservices"
+      ]
+    },
+    {
+      "title": "SENIOR SOFTWARE ENGINEER",
+      "company": "Serko",
+      "period": "2022 → 2024",
+      "description": "Full-stack development across .NET and React within the flight booking and management domain. Delivered enhancements to improve customer booking experience and uplift legacy applications. Collaborated closely with product and UX teams to refine user journeys. Applied AI-assisted development practices to accelerate delivery and improve code quality. Winner of the Serko Hackathon 2023 for rapid prototyping and innovative solution design.",
+      "tags": [
+        "C# .NET",
+        "React",
+        "Azure",
+        "GDS"
+      ]
+    },
+    {
+      "title": "SOFTWARE SPECIALIST / SENIOR DEVELOPER",
+      "company": "ASB Bank",
+      "period": "2020 → 2022",
+      "description": "Developed modern web application forms and BFF services for FNB and Home Lending products. Contributed to major digital transformation initiatives across customer onboarding and lending workflows. Supported architectural discussions and implementation planning.",
+      "tags": [
+        "C# .NET",
+        "React Native",
+        "API Design"
+      ]
+    },
+    {
+      "title": "SOFTWARE DEVELOPER",
+      "company": "Rush Digital",
+      "period": "2016 → 2018",
+      "description": "Delivered a wide range of digital products including computer vision systems, XR applications, mobile apps, chatbot and low-level driver development. Worked closely with designers and product teams in a fast-paced agency environment.",
+      "tags": [
+        "Unity",
+        "HoloLens",
+        "React",
+        "Node.js"
+      ]
+    },
+    {
+      "title": "EARLIER ROLES",
+      "company": "Various",
+      "period": "2007 → 2021",
+      "description": "Sub-contracted Full-stack developer @ Datacom (2019). Contracting: game development (Eyemobi, Owairakasoft), XR Development (Ascend Reality). Game Developer @ CerebralFix (2014-2015). Technical Advisor at EverSoSafe NZ (startup partner).",
+      "tags": [
+        "Full-stack",
+        "Game Dev",
+        "XR"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor of Software Engineering",
+      "institution": "Media Design School, Auckland",
+      "year": 2014
+    },
+    {
+      "degree": "Bachelor of Information Systems",
+      "institution": "Massey University, Auckland",
+      "year": 2009
+    }
+  ],
+  "languages": [
+    {
+      "language": "English",
+      "level": "Native or Bilingual"
+    },
+    {
+      "language": "Chinese (Cantonese)",
+      "level": "Limited Working"
+    },
+    {
+      "language": "Chinese (Mandarin)",
+      "level": "Limited Working"
+    },
+    {
+      "language": "Bahasa (Malaysia)",
+      "level": "Professional Working"
+    }
+  ],
+  "projects": [
+    {
+      "id": "idle-jobber",
+      "title": "Idle Jobber",
+      "year": 2026,
+      "description": "Job-search automation tool. Takes your CV as a PDF, then scans job boards for suitable roles, and drafts tailored cover letters for you to review and send. Long-term vision is to fully automate job-application for jobs that meet criteria.",
+      "summary": "Job-search automation tool. Take away all the stress of job-seeking!",
+      "tags": [
+        "Job",
+        "Grok",
+        "Vercel"
+      ],
+      "image": null,
+      "links": [
+        {
+          "label": "ASK_FOR_A_DEMO",
+          "url": "#"
+        }
+      ],
+      "featured": true
+    },
+    {
+      "id": "wp-ai-chatbot",
+      "title": "WordPress AI Chatbot Plugin",
+      "year": 2024,
+      "description": "Open-source chatbot plugin integrating various LLM providers. Tons of customization options, theme-agnostic design.",
+      "summary": "WordPress plugin integrating LLM providers as a chatbot for answering simple queries. This has since been made open source on Github.",
+      "tags": [
+        "PHP",
+        "Gemini AI",
+        "WordPress"
+      ],
+      "image": "wp-chatbot-opensource.png",
+      "links": [
+        {
+          "label": "EXAMPLE_WEBSITE",
+          "url": "https://www.epe.co.nz/"
+        },
+        {
+          "label": "OPEN_SOURCE",
+          "url": "https://github.com/code-minion/wp-ai-chat"
+        }
+      ],
+      "featured": true
+    },
+    {
+      "id": "flight-express-search",
+      "title": "Flight Express Search",
+      "year": 2023,
+      "summary": "High-performance search flow for flight bookings.",
+      "description": "High-performance multi-provider flight search engine for Serko. Sub-300ms aggregated search across 12+ airline GDS feeds with intelligent caching.",
+      "tags": [
+        "C# .NET",
+        "React",
+        "Azure"
+      ],
+      "image": null,
+      "links": [
+        {
+          "label": "DISTRIBUTED_SYSTEMS",
+          "url": "#"
+        }
+      ],
+      "featured": true
+    },
+    {
+      "id": "ascend-xr-hololens",
+      "title": "Ascend Reality HoloLens App",
+      "year": 2021,
+      "summary": "High-fidelity XR navigation experience for virtual apartments.",
+      "description": "HoloLens 2 mixed reality navigation app for virtual apartment tours. Spatial anchoring, gesture control, and real-time floor plan rendering.",
+      "tags": [
+        "Unity",
+        "C#",
+        "HoloLens 2",
+        "XR"
+      ],
+      "image": null,
+      "links": [
+        {
+          "label": "XR_ENGINEERING",
+          "url": "#"
+        },
+        {
+          "label": "EXPLORE",
+          "url": "#"
+        }
+      ],
+      "featured": true
+    },
+    {
+      "id": "thermoking-nz",
+      "title": "ThermoKing NZ",
+      "year": 2020,
+      "summary": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
+      "description": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
+      "tags": [
+        "Full-stack",
+        "Project Management"
+      ],
+      "image": null,
+      "links": [],
+      "featured": false
+    },
+    {
+      "id": "second-person-saga",
+      "title": "Second Person Saga",
+      "year": 2014,
+      "summary": "Unity game showcased internationally; innovative “second-person” gameplay concept.",
+      "description": "Award-winning 2014 Unity game. Second-person perspective puzzle platformer. Exhibited at Media Design School's graduation showcase.",
+      "tags": [
+        "Unity",
+        "C#",
+        "Game Design"
+      ],
+      "image": null,
+      "links": [
+        {
+          "label": "GAME_DEV",
+          "url": "#"
+        },
+        {
+          "label": "STUDENT_WORK",
+          "url": "#"
+        }
+      ],
+      "featured": true
+    }
+  ],
+  "preferences": {
+    "locations": [
+      "Hong Kong"
+    ],
+    "keywords": [
+      "Senior Software Engineer",
+      "Backend Engineer",
+      "Full-stack Developer",
+      ".NET Developer",
+      "Technical Lead",
+      "Fintech Engineer",
+      "AI Integration Specialist",
+      "AI Developer",
+      "Software Architect"
+    ]
+  }
+}

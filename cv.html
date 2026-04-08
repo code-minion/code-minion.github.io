@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BRADLEY_CHAN.SYS // DEV_PORTFOLIO v1.0</title>
+  <script type="module" crossorigin src="./src/cv.js"></script>
+  <link rel="stylesheet" crossorigin href="./src/cv.css">
+</head>
+
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <div class="scanlines"></div>
+
+  <div id="app">
+    <header class="site-header">
+      <div class="header-logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">BRADLEYCHAN_SYS // DEV_PORTFOLIO <span class="logo-version">v1.0</span></span>
+      </div>
+      <nav class="header-nav">
+        <a href="/" class="nav-link">&lt;_BACK_TO_3D_TERMINAL</a>
+        <a href="#home" class="nav-link active" data-section="home">[HOME]</a>
+        <a href="#projects" class="nav-link" data-section="projects">[PROJECTS]</a>
+        <a href="#skills" class="nav-link" data-section="skills">[SKILLS]</a>
+        <a href="#experience" class="nav-link" data-section="experience">[EXPERIENCE]</a>
+        <a href="#contact" class="nav-link" data-section="contact">[CONTACT]</a>
+      </nav>
+      <div class="header-status">
+        <span class="status-dot"></span>
+        <span>SYS_STATUS: <span class="status-text">ONLINE</span></span>
+      </div>
+    </header>
+
+    <main id="home" class="main-layout">
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <a href="#home" class="sidebar-link active" id="nav-home" data-section="home">
+            <span class="link-bracket">&gt;</span> [HOME]
+          </a>
+          <a href="#projects" class="sidebar-link" id="nav-projects" data-section="projects">
+            <span class="link-bracket"></span> [PROJECTS]
+          </a>
+          <a href="#skills" class="sidebar-link" id="nav-skills" data-section="skills">
+            <span class="link-bracket"></span> [SKILLS]
+          </a>
+          <a href="#experience" class="sidebar-link" id="nav-experience" data-section="experience">
+            <span class="link-bracket"></span> [EXPERIENCE]
+          </a>
+          <a href="#contact" class="sidebar-link" id="nav-contact" data-section="contact">
+            <span class="link-bracket"></span> [CONTACT]
+          </a>
+          <a href="./plain.html" class="sidebar-link" target="_blank" style="margin-top: 20px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 10px 15px; color: var(--pink);">
+            <span class="link-bracket" style="color:var(--pink);">📄</span> [PRINTABLE_VERSION]
+          </a>
+        </nav>
+
+        <div class="sidebar-status">
+          <div class="status-line">
+            <span class="status-dot"></span>
+            SYSTEM_STATUS: <span class="neon-green">ONLINE</span>
+          </div>
+          <div class="status-line">📍 HK_NODE: <span class="neon-cyan">ACTIVE</span></div>
+          <div class="status-line">⚡ LATENCY: <span class="neon-pink" id="latency-val">23ms</span></div>
+        </div>
+      </aside>
+
+      <div class="content-area">
+        <!-- HOME SECTION -->
+        <section class="section active" id="section-home">
+          <div class="terminal-panel hero-panel">
+            <div class="panel-title-bar">
+              <span class="panel-dots"><span></span><span></span><span></span></span>
+              <span class="panel-title">INIT_SEQUENCE.EXE</span>
+            </div>
+            <div class="terminal-body" id="hero-body">
+              <!-- Injected via cv.js -->
+            </div>
+            <canvas id="hero-chart" class="hero-chart"></canvas>
+          </div>
+
+          <div class="terminal-panel code-panel">
+            <div class="panel-title-bar">
+              <span class="panel-dots"><span></span><span></span><span></span></span>
+              <span class="panel-title">PROFILE_MATRIX.SYS</span>
+            </div>
+            <pre class="code-block"><code id="code-body">
+<!-- Injected via cv.js -->
+              </code></pre>
+          </div>
+        </section>
+
+        <!-- PROJECTS SECTION -->
+        <section class="section" id="section-projects">
+          <div class="section-header">
+            <h2 class="section-title neon-cyan">FEATURED_PROJECTS</h2>
+          </div>
+          <div class="projects-grid" id="projects-grid">
+            <!-- Injected -->
+          </div>
+        </section>
+
+        <!-- SKILLS SECTION -->
+        <section class="section" id="section-skills">
+          <div class="section-header">
+            <h2 class="section-title neon-cyan">TECHNICAL_SKILLS</h2>
+          </div>
+          <div class="skills-layout">
+            <div class="terminal-panel skills-text-panel">
+              <div class="panel-title-bar">
+                <span class="panel-title">SKILL_MATRIX.DAT</span>
+              </div>
+              <div class="skills-categories" id="skills-grid">
+                <!-- Injected -->
+              </div>
+            </div>
+            <div class="terminal-panel skills-bars-panel">
+              <div class="panel-title-bar">
+                <span class="panel-title">PROFICIENCY_INDEX</span>
+              </div>
+              <div class="skill-bars" id="skills-bars">
+                <!-- Injected -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- EXPERIENCE SECTION -->
+        <section class="section" id="section-experience">
+          <div class="section-header">
+            <h2 class="section-title neon-cyan">DEPLOYMENT_HISTORY</h2>
+          </div>
+          <div class="experience-list" id="experience-list">
+            <!-- Injected -->
+          </div>
+        </section>
+
+        <!-- CONTACT SECTION -->
+        <section class="section" id="section-contact">
+          <div class="section-header">
+            <h2 class="section-title neon-cyan">ESTABLISH_CONNECTION</h2>
+          </div>
+          <div class="terminal-panel contact-panel">
+            <div class="panel-title-bar">
+              <span class="panel-title">COMM_PROTOCOL.INIT</span>
+            </div>
+            <div class="contact-body" id="contact-body">
+              <!-- Injected -->
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <aside class="right-sidebar">
+        <div class="terminal-panel mini-panel">
+          <div class="panel-title-bar">
+            <span class="panel-title">QUICK_STATS</span>
+          </div>
+          <div class="mini-stat"><span class="stat-num neon-cyan">16</span><span class="stat-label">YRS EXP</span></div>
+          <div class="mini-stat"><span class="stat-num neon-pink">9+</span><span class="stat-label">ROLES</span></div>
+          <div class="mini-stat"><span class="stat-num neon-cyan">5+</span><span class="stat-label">TECH STACKS</span>
+          </div>
+          <div class="mini-stat"><span class="stat-num neon-pink">2</span><span class="stat-label">DEGREES</span></div>
+        </div>
+        <div class="terminal-panel mini-panel">
+          <div class="panel-title-bar">
+            <span class="panel-title">SYS_TRACE</span>
+          </div>
+          <div class="trace-log" id="trace-log">
+            <div class="trace-line"><span class="neon-green">OK</span> systems.init</div>
+            <div class="trace-line"><span class="neon-green">OK</span> ui.render</div>
+            <div class="trace-line"><span class="neon-cyan">--</span> awaiting_input</div>
+          </div>
+        </div>
+      </aside>
+
+    </main>
+
+    <footer class="status-bar">
+      <span>SYS_ARCH // 0xBC18 // LATENCY: <span class="neon-cyan" id="footer-latency">23ms</span></span>
+      <span class="spacer"></span>
+      <span>BRADLEY_CHAN // <span class="neon-pink">SENIOR_ENGINEER</span> // HK</span>
+      <span class="spacer"></span>
+      <div class="footer-links">
+        <a href="#" title="Email">✉</a>
+        <a href="#" title="LinkedIn" target="_blank">in</a>
+        <a href="#" title="GitHub" target="_blank">⌥</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <nav class="mobile-nav" id="mobile-nav">
+    <button class="mobile-nav-btn active" data-section="home"><span class="mob-icon">⌂</span>HOME</button>
+    <button class="mobile-nav-btn" data-section="projects"><span class="mob-icon">◈</span>PROJECTS</button>
+    <button class="mobile-nav-btn" data-section="skills"><span class="mob-icon">⚡</span>SKILLS</button>
+    <button class="mobile-nav-btn" data-section="experience"><span class="mob-icon">◉</span>EXP</button>
+    <button class="mobile-nav-btn" data-section="contact"><span class="mob-icon">✉</span>CONTACT</button>
+  </nav>
+</body>
+
+</html>

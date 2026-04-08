@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PROJECT_RECORD // v1.0</title>
+    <script type="module" crossorigin src="./src/project.js"></script>
+    <link rel="stylesheet" crossorigin href="./src/cv.css">
+    <style>
+      .project-details { font-family: 'Outfit', sans-serif; padding: 20px 0; }
+      .project-details p { margin-bottom: 20px; line-height: 1.6; font-size: 1.1rem; color: #ddd; }
+      .project-details h1 { color: var(--neon-blue); font-size: 2.5rem; margin-bottom: 10px; }
+      .project-details h2 { color: var(--neon-cyan); margin: 30px 0 15px; }
+      .project-details ul { margin-left: 20px; margin-bottom: 20px; color: #ccc; }
+      .project-details li { margin-bottom: 10px; }
+      .large-tag-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+      .large-tag { background: rgba(255,255,255,0.05); border: 1px solid var(--neon-pink); padding: 5px 15px; border-radius: 4px; color: var(--neon-pink); }
+      .repo-links { display: flex; flex-wrap: wrap; gap: 15px; margin: 30px 0; }
+      .btn-link { display: inline-block; padding: 10px 20px; background: rgba(0,210,255,0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); text-decoration: none; border-radius: 4px; transition: all 0.3s; white-space: nowrap; }
+      .btn-link:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
+      .btn-inactive { background: rgba(255,255,255,0.05); border-color: #4a6a7e; color: #4a6a7e; pointer-events: none; box-shadow: none; }
+      .hero-img-container { width: 100%; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; overflow: hidden; margin-bottom: 30px; display: none; }
+      .hero-img-container img { width: 100%; height: auto; display: block; }
+      @media (max-width: 600px) {
+        .project-details h1 { font-size: 1.8rem; }
+        .terminal-panel { padding: 20px !important; }
+        .repo-links { gap: 10px; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="scanlines"></div>
+
+    <div id="app">
+      <header class="site-header">
+        <div class="header-logo">
+          <span class="logo-icon">⬡</span>
+          <span class="logo-text">SYS_ARCHIVE // PROJECT_VIEWER <span class="logo-version">v1.0</span></span>
+        </div>
+        <nav class="header-nav">
+          <a href="#" onclick="window.close()" class="nav-link">&lt;_CLOSE_TAB</a>
+        </nav>
+      </header>
+
+      <main class="main-layout" style="justify-content: center; padding-top: 40px;">
+        <div class="content-area" style="max-width: 900px; flex: none; width: 100%;">
+          
+          <div class="terminal-panel" style="padding: 40px;">
+            <div class="panel-title-bar">
+              <span class="panel-dots"><span></span><span></span><span></span></span>
+              <span class="panel-title" id="proj-panel-title">LOADING_PROJECT_DATA...</span>
+            </div>
+            
+            <div class="project-details" id="project-content">
+               <!-- Injected via project.js -->
+               <h1 class="blink-line">FETCHING...</h1>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
