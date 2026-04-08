@@ -110,36 +110,4 @@ document.addEventListener('DOMContentLoaded', () => {
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleSend();
     });
-
-    // ---- Mobile Input Mirror Logic ----
-    const mirror = document.getElementById('chat-input-mirror');
-    const isMobile = window.matchMedia('(max-width: 768px)');
-    
-    function updateMirror() {
-        if (!isMobile.matches) return;
-        const text = chatInput.value;
-        if (text) {
-            mirror.innerText = text;
-            mirror.classList.add('active');
-        } else {
-            mirror.classList.remove('active');
-        }
-    }
-
-    chatInput.addEventListener('input', updateMirror);
-    
-    chatInput.addEventListener('focus', () => {
-        if (isMobile.matches && chatInput.value) {
-            mirror.classList.add('active');
-        }
-    });
-
-    chatInput.addEventListener('blur', () => {
-        // Delay hide so we don't flash if user quickly taps again
-        setTimeout(() => {
-            if (document.activeElement !== chatInput) {
-                mirror.classList.remove('active');
-            }
-        }, 200);
-    });
 });

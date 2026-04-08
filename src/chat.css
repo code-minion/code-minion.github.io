@@ -269,35 +269,4 @@
     .chat-msg {
         max-width: 90%;
     }
-
-    /* Mobile Input Mirror - hovers above keyboard */
-    .chat-input-mirror {
-        display: none; /* Controlled via JS */
-        position: absolute;
-        bottom: 75px; /* Above the input area */
-        left: 10px;
-        right: 10px;
-        background: rgba(0, 210, 255, 0.9);
-        color: #000;
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        z-index: 1300;
-        box-shadow: 0 0 20px rgba(0, 210, 255, 0.6);
-        pointer-events: none;
-        word-wrap: break-word;
-        max-height: 100px;
-        overflow-y: auto;
-    }
-
-    .chat-input-mirror.active {
-        display: block;
-        animation: mirrorFadeIn 0.2s ease-out;
-    }
-
-    @keyframes mirrorFadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
 }
