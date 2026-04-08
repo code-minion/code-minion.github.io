@@ -116,32 +116,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const isMobile = window.matchMedia('(max-width: 768px)');
     let isKeyboardOpen = false;
     
-    // Position the mirror above the visual viewport (keyboard)
+    // Position the mirror and panel relative to the visual viewport
     if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
+        const handleResize = () => {
             if (!isMobile.matches) return;
             
             const viewport = window.visualViewport;
-            const currentKeyboardHeight = window.innerHeight - viewport.height;
+            // Height of the occluded area at the bottom
+            const keyboardHeight = window.innerHeight - viewport.height;
             
-            if (currentKeyboardHeight > 100) { 
+            if (keyboardHeight > 100) { 
                 isKeyboardOpen = true;
-                // Position mirror fixed at the top of the calculated keyboard area
+                
+                // 1. Position the entire chat panel right above the keyboard
+                chatPanel.style.position = 'fixed';
+                chatPanel.style.bottom = `${keyboardHeight}px`;
+                chatPanel.style.height = '60vh'; // Constrain height so it doesn't push off screen
+                chatPanel.style.maxHeight = `${viewport.height - 20}px`;
+                
+                // 2. Position the mirror chip just above the input area
                 mirror.style.position = 'fixed';
-                mirror.style.bottom = `${currentKeyboardHeight + 10}px`;
-                mirror.style.left = '10px';
-                mirror.style.right = '10px';
+                // 60px is roughly the height of the input area + padding
+                mirror.style.bottom = `${keyboardHeight + 60}px`; 
+                mirror.style.left = '20px';
+                mirror.style.right = '20px';
                 mirror.style.width = 'auto';
+                
                 updateMirror();
             } else {
                 isKeyboardOpen = false;
                 mirror.classList.remove('active');
-                // Ensure panel styles are reset to CSS defaults
+                // Reset panel to CSS defaults
+                chatPanel.style.position = '';
                 chatPanel.style.bottom = '';
                 chatPanel.style.height = '';
                 chatPanel.style.maxHeight = '';
             }
-        });
+        };
+
+        window.visualViewport.addEventListener('resize', handleResize);
+        window.visualViewport.addEventListener('scroll', handleResize);
     }
 
     function updateMirror() {
