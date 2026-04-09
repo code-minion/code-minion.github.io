@@ -22,6 +22,13 @@
     <script type="module" src="./src/plain.js"></script>
     <script>
         document.getElementById('print-btn').addEventListener('click', () => {
+            const isFB = /FBAN|FBAV/i.test(navigator.userAgent);
+            
+            if (isFB) {
+                alert("NOTICE: The Facebook/Messenger webview does not support printing directly. \n\nPlease tap the '...' button or the browser icon and select 'Open in Browser' to save this CV as a PDF.");
+                return;
+            }
+
             // Safari iOS can be fussy about print timing
             setTimeout(() => {
                 window.print();
