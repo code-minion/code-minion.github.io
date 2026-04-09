@@ -11,7 +11,7 @@
 </head>
 <body>
     <div id="print-controls" class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-        <button onclick="window.print()" style="padding: 10px 20px; background: #000; color: #fff; border: 1px solid #fff; border-radius: 4px; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <button id="print-btn" type="button" style="padding: 10px 20px; background: #000; color: #fff; border: 1px solid #fff; border-radius: 4px; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
             🖨️ PRINT_TO_PDF
         </button>
     </div>
@@ -20,5 +20,13 @@
     </div>
 
     <script type="module" src="./src/plain.js"></script>
+    <script>
+        document.getElementById('print-btn').addEventListener('click', () => {
+            // Safari iOS can be fussy about print timing
+            setTimeout(() => {
+                window.print();
+            }, 50);
+        });
+    </script>
 </body>
 </html>
