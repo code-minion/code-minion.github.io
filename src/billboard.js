@@ -10,22 +10,22 @@ export class Billboard {
         this.textColor       = options.textColor   || '#e0eeff';
         this.accentColor     = options.accentColor || '#00d2ff';
         this.borderColor     = options.borderColor || 'rgba(0, 210, 255, 0.4)';
-        this.fontSize        = options.fontSize    || 36;
+        this.fontSize        = options.fontSize    || 48;
         this.padding         = options.padding     || 30;
         this.opacity         = options.opacity !== undefined ? options.opacity : 1.0;
         this.bobSpeed        = options.bobSpeed    !== undefined ? options.bobSpeed    : 1.2;
-        this.bobAmplitude    = options.bobAmplitude !== undefined ? options.bobAmplitude : 0.06;
+        this.bobAmplitude    = options.bobAmplitude !== undefined ? options.bobAmplitude : 0;
         this.lookAtCamera    = options.lookAtCamera !== undefined ? options.lookAtCamera : true;
-        this.canvasWidth     = options.canvasWidth  || 1024;
-        this.canvasHeight    = options.canvasHeight || 768;
+        this.canvasWidth     = options.canvasWidth  || 1536;
+        this.canvasHeight    = options.canvasHeight || 1152;
         this.name            = options.name        || 'billboard';
         this.onClick         = options.onClick     || null;
         this.onClickData     = options.onClickData || null;
-
+ 
         // Scroll state
         this._scrollY         = 0;
         this._scrollDirection = 1;
-        this._scrollSpeed     = options.scrollSpeed !== undefined ? options.scrollSpeed : 18;
+        this._scrollSpeed     = options.scrollSpeed !== undefined ? options.scrollSpeed : 0;
         this._contentHeight   = 0;
         this._lastScrollTime  = null;
         this._needsScroll     = false;

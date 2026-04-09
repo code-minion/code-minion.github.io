@@ -553,8 +553,8 @@ function handleNavAction(action) {
         .addScaledVector(camRight, 5.2)   // push right in screen space
         .addScaledVector(camUp, 1.5);
 
-    const PW = 4.0;   // panel width
-    const PH = 2.8;   // panel height
+    const PW = 4.5;   // panel width
+    const PH = 3.8;   // panel height
     const ROW_H = 1.0;   // unused for projects (now a single table)
 
     switch (action) {
