@@ -51,6 +51,8 @@ BRADLEY'S DATA:
 ${JSON.stringify(cvData, null, 2)}
 `.trim();
 
+let cachedSessionToken = null;
+
 /**
  * Sends a prompt with conversation history to the BFF.
  * @param {string} prompt — The user's latest message
@@ -60,20 +62,42 @@ ${JSON.stringify(cvData, null, 2)}
 export async function sendMessage(prompt, history = [], chatId = null) {
     if (!prompt?.trim()) throw new Error('Prompt cannot be empty');
 
-    const turnstileToken = await getTurnstileToken();
+    let turnstileToken = null;
+    
+    // Only fetch Turnstile if we don't have a valid session token yet
+    if (!cachedSessionToken) {
+        console.log('DEBUG: No session token, fetching Turnstile...');
+        turnstileToken = await getTurnstileToken();
+    }
 
     const res = await fetch(BFF_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, turnstileToken, history, systemPrompt: SYSTEM_PROMPT, chatId }),
+        body: JSON.stringify({ 
+            prompt, 
+            turnstileToken, 
+            sessionToken: cachedSessionToken,
+            history, 
+            systemPrompt: SYSTEM_PROMPT, 
+            chatId 
+        }),
     });
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        // If session expired or failed, clear token so next attempt retries Turnstile
+        cachedSessionToken = null;
         throw new Error(err.error || `BFF returned ${res.status}`);
     }
 
     const data = await res.json();
+    
+    // Cache the new session token for subsequent messages
+    if (data.sessionToken) {
+        cachedSessionToken = data.sessionToken;
+        console.log('DEBUG: Session token updated.');
+    }
+
     return { reply: data.response, finishReason: data.finishReason };
 }
 

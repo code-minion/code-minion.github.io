@@ -46,9 +46,8 @@ export async function getTurnstileToken() {
     if (!container) {
         container = document.createElement('div');
         container.id = 'cf-turnstile-container';
-        // Make it explicitly visible! In "Managed" mode, Cloudflare may decide 
-        // to render a physical checkbox. If it's offscreen, it hangs forever.
-        container.style.display = 'flex';
+        // Hide by default, only show when rendering a challenge
+        container.style.display = 'none';
         container.style.justifyContent = 'center';
         container.style.margin = '10px 0';
         
@@ -65,12 +64,23 @@ export async function getTurnstileToken() {
         window.turnstile.remove(widgetId);
     }
 
+    container.style.display = 'flex'; // Show for challenge
+
     return new Promise((resolve, reject) => {
         widgetId = window.turnstile.render('#cf-turnstile-container', {
             sitekey: TURNSTILE_SITE_KEY,
-            callback: (token) => resolve(token),
-            'error-callback': () => reject(new Error('Turnstile widget failed')),
-            'expired-callback': () => reject(new Error('Turnstile token expired')),
+            callback: (token) => {
+                container.style.display = 'none'; // Hide once done
+                resolve(token);
+            },
+            'error-callback': () => {
+                container.style.display = 'none';
+                reject(new Error('Turnstile widget failed'));
+            },
+            'expired-callback': () => {
+                container.style.display = 'none';
+                reject(new Error('Turnstile token expired'));
+            },
         });
     });
 }
