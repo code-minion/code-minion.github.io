@@ -102,8 +102,8 @@ export class Billboard {
 
         const totalH = this._measureContent(ctx, w, p);
         this._contentHeight = totalH;
-        // 50px buffer to handle line-height math variances
-        this._needsScroll   = totalH > (h - p + 50); 
+        // 5px buffer for rounding variances after fixing baseline ghost pixels
+        this._needsScroll   = totalH > (h - p + 5); 
 
         this._drawContent(ctx, w, h, p, -scrollOffsetY);
         ctx.restore();
@@ -124,17 +124,19 @@ export class Billboard {
     }
 
     _measureContent(ctx, w, p) {
-        let y = p + this.fontSize;
+        let y = p; // Start at padding
+        const lh = this.fontSize * 1.5;
+
         for (const rawLine of this.content.split('\n')) {
             const line = rawLine.trim();
             if (!line) { y += this.fontSize * 0.5; continue; }
 
             if (line.startsWith('# ')) {
                 ctx.font = `600 ${this.fontSize * 1.5}px 'Outfit', sans-serif`;
-                y += this.fontSize * 0.5 + _measureWrappedLines(ctx, _strip(line.slice(2)), w - p * 2 - 20) * this.fontSize * 1.5;
+                y += this.fontSize * 0.5 + _measureWrappedLines(ctx, _strip(line.slice(2)), w - p * 2 - 20) * (this.fontSize * 1.5);
             } else if (line.startsWith('## ')) {
                 ctx.font = `600 ${this.fontSize * 1.3}px 'Outfit', sans-serif`;
-                y += this.fontSize * 0.3 + _measureWrappedLines(ctx, _strip(line.slice(3)), w - p * 2 - 20) * this.fontSize * 1.5;
+                y += this.fontSize * 0.3 + _measureWrappedLines(ctx, _strip(line.slice(3)), w - p * 2 - 20) * (this.fontSize * 1.5);
             } else if (line.startsWith('TABLE_HEADER|')) {
                 y += this.fontSize * 2.0;
             } else if (line.startsWith('TABLE_ROW|')) {
@@ -143,8 +145,8 @@ export class Billboard {
                 y += this.fontSize;
             } else {
                 ctx.font = `300 ${this.fontSize}px 'Outfit', sans-serif`;
-                const indent = line.startsWith('- ') ? 20 : 0;
-                y += _measureWrappedLines(ctx, _strip(line), w - p * 2 - indent - 20) * this.fontSize * 1.5;
+                const indent = line.startsWith('- ') ? 30 : 0;
+                y += _measureWrappedLines(ctx, _strip(line), w - p * 2 - indent - 20) * lh;
             }
         }
         return y + p;
