@@ -424,12 +424,12 @@ body {
 
 .quick-links {
     position: fixed;
-    top: 100px;
+    top: 30px;
     right: 30px;
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 5px;
 }
 
 .quick-cv-link {

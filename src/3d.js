@@ -107,6 +107,8 @@ function init() {
     controls.minPolarAngle = Math.max(0, pol - 0.18);
     controls.maxPolarAngle = Math.min(Math.PI, pol + 0.18);
 
+    controls.enableZoom = false; // Disable global camera zoom via scroll
+
     // Lighting - Updated bounds via user test tuning
     ambientLight = new THREE.AmbientLight(0xffffff, 2.355);
     scene.add(ambientLight);
@@ -145,6 +147,7 @@ function init() {
     window.addEventListener('resize', onWindowResize);
     canvas.addEventListener('click', onCanvasClick);
     canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
     document.getElementById('clear-selection')?.addEventListener('click', clearSelection);
     document.getElementById('toggle-camera')?.addEventListener('click', toggleCamera);
 
@@ -402,6 +405,27 @@ function onCanvasClick(event) {
     }
 }
 
+function onCanvasWheel(event) {
+    if (activeBillboards.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const billboardMeshes = activeBillboards.map(b => b.mesh);
+    const intersects = raycaster.intersectObjects(billboardMeshes, false);
+
+    if (intersects.length > 0) {
+        // Only prevent default if we actually hit a scrollable billboard
+        const bb = intersects[0].object.userData.billboard;
+        if (bb && bb._needsScroll) {
+            event.preventDefault();
+            bb.scroll(event.deltaY);
+        }
+    }
+}
+
 function selectObject(obj) {
     if (!obj || selectedObject === obj) return;
 
@@ -551,10 +575,10 @@ function handleNavAction(action) {
     const camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
     const basePos = controls.target.clone()
         .addScaledVector(camRight, 5.2)   // push right in screen space
-        .addScaledVector(camUp, 1.5);
+        .addScaledVector(camUp, 1.8);
 
     const PW = 4.5;   // panel width
-    const PH = 3.8;   // panel height
+    const PH = 3.2;   // panel height
     const ROW_H = 1.0;   // unused for projects (now a single table)
 
     switch (action) {
@@ -567,7 +591,7 @@ function handleNavAction(action) {
             // Re-derive basePos now camera has moved to home position
             camRight.setFromMatrixColumn(camera.matrixWorld, 0);
             camUp.setFromMatrixColumn(camera.matrixWorld, 1);
-            basePos.copy(controls.target).addScaledVector(camRight, 5.2).addScaledVector(camUp, 1.5);
+            basePos.copy(controls.target).addScaledVector(camRight, 5.2).addScaledVector(camUp, 1.8);
             spawnBillboard(`# ${cvData.contact.name}\n\n${cvData.summary}\n\n---\nClick other nav options to explore.`, basePos, { width: PW, height: PH });
             break;
         case 'projects': {

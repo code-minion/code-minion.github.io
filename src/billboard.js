@@ -307,39 +307,22 @@ export class Billboard {
         return this._rowHitAreas.find(r => canvasY >= r.yStartPx && canvasY <= r.yEndPx) || null;
     }
 
+    scroll(deltaY) {
+        if (!this._needsScroll) return;
+        const maxScroll = this._contentHeight - (this.canvasHeight - this.padding);
+        if (maxScroll <= 0) return;
+
+        this._scrollY += deltaY * 1.5; // Sensitivity
+        this._scrollY = Math.max(0, Math.min(maxScroll, this._scrollY));
+        
+        this._renderFrame(this._scrollY);
+    }
+
     update(time, camera) {
         if (this.lookAtCamera && camera) {
             this.mesh.quaternion.copy(camera.quaternion);
         }
-        if (this.bobAmplitude > 0) {
-            this.mesh.position.y = this.originalY + Math.sin(time * this.bobSpeed) * this.bobAmplitude;
-        }
-        if (this._needsScroll && this._scrollSpeed > 0) {
-            if (this._lastScrollTime === null) this._lastScrollTime = time;
-            const dt = time - this._lastScrollTime;
-            this._lastScrollTime = time;
-            const maxScroll = this._contentHeight - (this.canvasHeight - this.padding);
-            if (maxScroll > 0) {
-                this._scrollY += this._scrollSpeed * dt * this._scrollDirection;
-                if (this._scrollY >= maxScroll) {
-                    this._scrollY = maxScroll;
-                    if (!this._pauseTimer) this._pauseTimer = time;
-                    if (time - this._pauseTimer > 1.5) { this._scrollDirection = -1; this._pauseTimer = null; }
-                } else if (this._scrollY <= 0) {
-                    this._scrollY = 0;
-                    if (!this._pauseTimer) this._pauseTimer = time;
-                    if (time - this._pauseTimer > 1.5) { this._scrollDirection = 1; this._pauseTimer = null; }
-                } else {
-                    this._pauseTimer = null;
-                }
-
-                // Throttle texture updates to ~30fps during scroll
-                if (!this._lastTextureUpdateTime || time - this._lastTextureUpdateTime > 0.033) {
-                    this._renderFrame(this._scrollY);
-                    this._lastTextureUpdateTime = time;
-                }
-            }
-        }
+        // Removed auto-scroll logic in update() as requested
     }
 
     dispose() {
