@@ -183,7 +183,7 @@
         "Grok",
         "Vercel"
       ],
-      "image": null,
+      "image": "idle-jobber.png",
       "links": [
         {
           "label": "ASK_FOR_A_DEMO",

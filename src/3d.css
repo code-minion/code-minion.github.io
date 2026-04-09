@@ -408,4 +408,39 @@ body {
     .glass-nav { display: none; }
     .mobile-nav { display: flex; }
     .mobile-branding { display: flex; }
+    
+    .quick-links {
+        top: auto !important;
+        bottom: 125px !important;
+        right: auto !important;
+        left: 20px !important;
+    }
+    
+    .quick-cv-link {
+        width: 120px !important;
+        font-size: 0.7rem !important;
+    }
+}
+
+.quick-links {
+    position: fixed;
+    top: 100px;
+    right: 30px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quick-cv-link {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    border-color: var(--accent-pink) !important;
+    color: var(--accent-pink) !important;
+    background: rgba(255, 45, 126, 0.05);
+    text-shadow: 0 0 10px var(--accent-pink);
+    font-weight: 600;
 }
