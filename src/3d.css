@@ -424,8 +424,8 @@ body {
 
 .quick-links {
     position: fixed;
-    top: 30px;
     right: 30px;
+    bottom: 100px;
     z-index: 1000;
     display: flex;
     flex-direction: column;
