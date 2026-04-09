@@ -102,7 +102,7 @@ export class Billboard {
 
         const totalH = this._measureContent(ctx, w, p);
         this._contentHeight = totalH;
-        this._needsScroll   = totalH > h - p;
+        this._needsScroll   = totalH > (h - p + 20); // 20px buffer to prevent ghost scrollbars
 
         this._drawContent(ctx, w, h, p, -scrollOffsetY);
         ctx.restore();
