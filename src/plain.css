@@ -200,8 +200,8 @@ li {
         box-shadow: none;
         max-width: 100%;
     }
-    .print-actions {
-        display: none;
+    .print-actions, .no-print {
+        display: none !important;
     }
     .page-break {
         margin: 0;
