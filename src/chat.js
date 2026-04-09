@@ -14,15 +14,51 @@ document.addEventListener('DOMContentLoaded', () => {
     let contextExhausted = false;
     const chatId = crypto.randomUUID();
 
+    const isMobileQuery = window.matchMedia('(max-width: 768px)');
+    let isMobile = isMobileQuery.matches;
+    isMobileQuery.addEventListener('change', e => {
+        isMobile = e.matches;
+        updateMobileLayout();
+    });
+
+    function updateMobileLayout() {
+        if (!isMobile || !chatPanel.classList.contains('open')) {
+            chatPanel.classList.remove('mobile-active');
+            chatPanel.style.height = '';
+            chatPanel.style.top = '';
+            document.body.style.overflow = '';
+            return;
+        }
+
+        chatPanel.classList.add('mobile-active');
+        document.body.style.overflow = 'hidden';
+
+        if (window.visualViewport) {
+            const vv = window.visualViewport;
+            chatPanel.style.height = `${vv.height}px`;
+            chatPanel.style.top = `${vv.offsetTop}px`;
+        }
+    }
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateMobileLayout);
+        window.visualViewport.addEventListener('scroll', updateMobileLayout);
+    }
+
     // ---- Toggle ----
     chatToggle.addEventListener('click', () => {
         chatPanel.classList.toggle('open');
+        updateMobileLayout();
+        
         if (chatPanel.classList.contains('open') && !contextExhausted) {
             chatInput.focus();
         }
     });
 
-    closeChat.addEventListener('click', () => chatPanel.classList.remove('open'));
+    closeChat.addEventListener('click', () => {
+        chatPanel.classList.remove('open');
+        updateMobileLayout();
+    });
 
     // ---- Message rendering ----
     function addMessage(text, isUser = false) {
@@ -58,9 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleSend() {
         if (contextExhausted) return;
         
-        // Hide mirror on mobile
-        if (mirror) mirror.classList.remove('active');
-
         const text = chatInput.value.trim();
         if (!text) return;
 
