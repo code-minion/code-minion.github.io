@@ -22,10 +22,11 @@
     <script type="module" src="./src/plain.js"></script>
     <script>
         document.getElementById('print-btn').addEventListener('click', () => {
-            const isFB = /FBAN|FBAV/i.test(navigator.userAgent);
+            // Broad check for common in-app browsers (Facebook, Instagram, Snapchat, Threads, etc.)
+            const isInApp = /FBAN|FBAV|Instagram|Threads|Snapchat|Line|Pinterest|MicroMessenger/i.test(navigator.userAgent);
             
-            if (isFB) {
-                alert("NOTICE: The Facebook/Messenger webview does not support printing directly. \n\nPlease tap the '...' button or the browser icon and select 'Open in Browser' to save this CV as a PDF.");
+            if (isInApp) {
+                alert("NOTICE: In-app browsers (like Facebook, Instagram, or Snapchat) do not support printing directly. \n\nPlease open this page in a standard browser (Safari or Chrome) using the options menu ('...' or share icon) to save as a PDF.");
                 return;
             }
 
