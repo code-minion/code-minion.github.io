@@ -133,10 +133,10 @@ export class Billboard {
 
             if (line.startsWith('# ')) {
                 ctx.font = `600 ${this.fontSize * 1.5}px 'Outfit', sans-serif`;
-                y += this.fontSize * 0.5 + _measureWrappedLines(ctx, _strip(line.slice(2)), w - p * 2 - 20) * (this.fontSize * 1.5);
+                y += this.fontSize * 0.5 + _measureWrappedLines(ctx, line.slice(2), w - p * 2 - 20) * (this.fontSize * 1.5);
             } else if (line.startsWith('## ')) {
                 ctx.font = `600 ${this.fontSize * 1.3}px 'Outfit', sans-serif`;
-                y += this.fontSize * 0.3 + _measureWrappedLines(ctx, _strip(line.slice(3)), w - p * 2 - 20) * (this.fontSize * 1.5);
+                y += this.fontSize * 0.3 + _measureWrappedLines(ctx, line.slice(3), w - p * 2 - 20) * (this.fontSize * 1.5);
             } else if (line.startsWith('TABLE_HEADER|')) {
                 y += this.fontSize * 2.0;
             } else if (line.startsWith('TABLE_ROW|')) {
@@ -146,7 +146,7 @@ export class Billboard {
             } else {
                 ctx.font = `300 ${this.fontSize}px 'Outfit', sans-serif`;
                 const indent = line.startsWith('- ') ? 30 : 0;
-                y += _measureWrappedLines(ctx, _strip(line), w - p * 2 - indent - 20) * lh;
+                y += _measureWrappedLines(ctx, line, w - p * 2 - indent - 20) * lh;
             }
         }
         return y + p;
@@ -354,12 +354,29 @@ function _strip(line) {
     return line.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1');
 }
 
-function _measureWrappedLines(ctx, text, maxWidth) {
-    let count = 1, cur = '';
-    for (const w of text.split(' ')) {
-        const test = cur ? cur + ' ' + w : w;
-        if (ctx.measureText(test).width > maxWidth) { count++; cur = w; } else { cur = test; }
+function _measureWrappedLines(ctx, text, maxWidth, baseFontSize) {
+    const tokens = [];
+    for (const seg of _parseInline(text)) {
+        for (const w of seg.text.split(/(\s+)/)) {
+            if (w) tokens.push({ word: w, bold: seg.bold });
+        }
     }
+
+    const baseFont = ctx.font;
+    const boldFont = baseFont.replace(/^\d+\s/, '600 ');
+
+    let count = 1, bw = 0;
+    for (const tok of tokens) {
+        ctx.font = tok.bold ? boldFont : baseFont;
+        const tw = ctx.measureText(tok.word).width;
+        if (bw + tw > maxWidth && bw > 0) {
+            count++;
+            bw = tw;
+        } else {
+            bw += tw;
+        }
+    }
+    ctx.font = baseFont; // Reset
     return count;
 }
 
