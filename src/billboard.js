@@ -102,8 +102,6 @@ export class Billboard {
 
         const totalH = this._measureContent(ctx, w, p);
         this._contentHeight = totalH;
-        // 5px buffer for rounding variances after fixing baseline ghost pixels
-        this._needsScroll   = totalH > (h - p + 5); 
 
         this._drawContent(ctx, w, h, p, -scrollOffsetY);
         ctx.restore();
@@ -124,19 +122,22 @@ export class Billboard {
     }
 
     _measureContent(ctx, w, p) {
-        let y = p; // Start at padding
+        let y = p; // Start at top padding
         const lh = this.fontSize * 1.5;
 
         for (const rawLine of this.content.split('\n')) {
             const line = rawLine.trim();
             if (!line) { y += this.fontSize * 0.5; continue; }
 
+            let lineCount = 0;
             if (line.startsWith('# ')) {
                 ctx.font = `600 ${this.fontSize * 1.5}px 'Outfit', sans-serif`;
-                y += this.fontSize * 0.5 + _measureWrappedLines(ctx, line.slice(2), w - p * 2 - 20) * (this.fontSize * 1.5);
+                lineCount = _measureWrappedLines(ctx, line.slice(2), w - p * 2 - 20);
+                y += this.fontSize * 0.5 + lineCount * (this.fontSize * 1.5);
             } else if (line.startsWith('## ')) {
                 ctx.font = `600 ${this.fontSize * 1.3}px 'Outfit', sans-serif`;
-                y += this.fontSize * 0.3 + _measureWrappedLines(ctx, line.slice(3), w - p * 2 - 20) * (this.fontSize * 1.5);
+                lineCount = _measureWrappedLines(ctx, line.slice(3), w - p * 2 - 20);
+                y += this.fontSize * 0.3 + lineCount * (this.fontSize * 1.5);
             } else if (line.startsWith('TABLE_HEADER|')) {
                 y += this.fontSize * 2.0;
             } else if (line.startsWith('TABLE_ROW|')) {
@@ -146,10 +147,14 @@ export class Billboard {
             } else {
                 ctx.font = `300 ${this.fontSize}px 'Outfit', sans-serif`;
                 const indent = line.startsWith('- ') ? 30 : 0;
-                y += _measureWrappedLines(ctx, line, w - p * 2 - indent - 20) * lh;
+                lineCount = _measureWrappedLines(ctx, line, w - p * 2 - indent - 20);
+                y += lineCount * lh;
             }
         }
-        return y + p;
+        
+        // Use a very tight 2px buffer now that math is hyper-accurate
+        this._needsScroll = (y + p * 0.5) > (this.canvasHeight - p + 2);
+        return y + p * 0.5;
     }
 
     _drawContent(ctx, w, h, p, yOffset) {
