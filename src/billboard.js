@@ -65,7 +65,7 @@ export class Billboard {
     }
 
     setContent(markdown) {
-        this.content         = markdown;
+        this.content         = markdown.trim(); // Trim trailing/leading newlines
         this._scrollY        = 0;
         this._lastScrollTime = null;
         this._rowHitAreas    = [];
@@ -102,7 +102,8 @@ export class Billboard {
 
         const totalH = this._measureContent(ctx, w, p);
         this._contentHeight = totalH;
-        this._needsScroll   = totalH > (h - p + 20); // 20px buffer to prevent ghost scrollbars
+        // 50px buffer to handle line-height math variances
+        this._needsScroll   = totalH > (h - p + 50); 
 
         this._drawContent(ctx, w, h, p, -scrollOffsetY);
         ctx.restore();
