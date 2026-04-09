@@ -575,10 +575,10 @@ function handleNavAction(action) {
     const camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
     const basePos = controls.target.clone()
         .addScaledVector(camRight, 5.2)   // push right in screen space
-        .addScaledVector(camUp, 1.8);
+        .addScaledVector(camUp, 1.9);
 
     const PW = 4.5;   // panel width
-    const PH = 3.2;   // panel height
+    const PH = 3.4;   // panel height
     const ROW_H = 1.0;   // unused for projects (now a single table)
 
     switch (action) {
@@ -591,7 +591,7 @@ function handleNavAction(action) {
             // Re-derive basePos now camera has moved to home position
             camRight.setFromMatrixColumn(camera.matrixWorld, 0);
             camUp.setFromMatrixColumn(camera.matrixWorld, 1);
-            basePos.copy(controls.target).addScaledVector(camRight, 5.2).addScaledVector(camUp, 1.8);
+            basePos.copy(controls.target).addScaledVector(camRight, 5.2).addScaledVector(camUp, 1.9);
             spawnBillboard(`# ${cvData.contact.name}\n\n${cvData.summary}\n\n---\nClick other nav options to explore.`, basePos, { width: PW, height: PH });
             break;
         case 'projects': {

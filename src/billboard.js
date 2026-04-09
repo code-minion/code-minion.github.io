@@ -152,8 +152,8 @@ export class Billboard {
             }
         }
         
-        // Use a very tight 2px buffer now that math is hyper-accurate
-        this._needsScroll = (y + p * 0.5) > (this.canvasHeight - p + 2);
+        // Increased buffer to 60px to fully suppress ghost scrollbars on borderline content
+        this._needsScroll = (y + p * 0.5) > (this.canvasHeight - p + 60);
         return y + p * 0.5;
     }
 
