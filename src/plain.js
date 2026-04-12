@@ -1,13 +1,51 @@
 import cvData from './cv-data.json';
+import QRCode from 'qrcode';
+import GUI from 'lil-gui';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('cv-container');
-    
+
+    // Default Settings
+    const defaultSettings = {
+        qrSize: 80,
+        qrMarginLeft: 20,
+        qrMarginTop: 0,
+        qrOpacity: 1,
+        showLabel: true,
+        label: 'Portfolio'
+    };
+
+    // Load from localStorage
+    const savedSettings = JSON.parse(localStorage.getItem('cv-qr-settings') || '{}');
+    const settings = { ...defaultSettings, ...savedSettings };
+
+    // Function to generate and update QR
+    async function updateQR() {
+        const qrWrapper = document.getElementById('qr-wrapper');
+        if (!qrWrapper) return;
+
+        try {
+            const qrDataUrl = await QRCode.toDataURL('https://code-minion.github.io', { 
+                width: settings.qrSize * 2, // Generate at 2x for high DPI
+                margin: 0 
+            });
+            
+            qrWrapper.innerHTML = `
+                <div style="text-align: center; margin-left: ${settings.qrMarginLeft}px; margin-top: ${settings.qrMarginTop}px; opacity: ${settings.qrOpacity};">
+                    <img src="${qrDataUrl}" alt="QR Code" width="${settings.qrSize}" height="${settings.qrSize}" />
+                    ${settings.showLabel ? `<div style="font-size: 10px; color: #666; margin-top: 4px;">${settings.label}</div>` : ''}
+                </div>
+            `;
+        } catch (err) {
+            console.error('Error generating QR code', err);
+        }
+    }
+
     // Build Header
     let contactLinks = [];
     if (cvData.contact.location) contactLinks.push(`<span>${cvData.contact.location}</span>`);
     if (cvData.contact.linkedin) contactLinks.push(`<span>linkedin.com/in/codeminion</span>`);
-    
+
     // Skills
     const skillsHtml = cvData.skills.map(s => {
         return `<div class="skill-item">
@@ -54,10 +92,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
 
     // Compile entire HTML
-    const html = `
-        <h1>${cvData.contact.name}</h1>
-        <div class="header-contact">
-            ${contactLinks.join(' <span style="color:#ccc;">|</span> ')}
+    container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1>${cvData.contact.name}</h1>
+                <div class="header-contact">
+                    ${contactLinks.join(' <span style="color:#ccc;">|</span> ')}
+                </div>
+            </div>
+            <div id="qr-wrapper"></div>
         </div>
         
         <div class="summary">
@@ -95,5 +138,33 @@ document.addEventListener('DOMContentLoaded', () => {
         <p style="color: var(--text-secondary);">${langHtml}</p>` : ''}
     `;
 
-    container.innerHTML = html;
+    // Initialize QR
+    updateQR();
+
+    // Setup GUI
+    const gui = new GUI({ title: 'QR Code Settings', container: document.body });
+    gui.domElement.classList.add('no-print');
+    
+    const saveSettings = () => localStorage.setItem('cv-qr-settings', JSON.stringify(settings));
+
+    gui.add(settings, 'qrSize', 40, 200, 1).name('Size (px)').onChange(() => { updateQR(); saveSettings(); });
+    gui.add(settings, 'qrMarginLeft', -100, 200, 1).name('Margin Left').onChange(() => { updateQR(); saveSettings(); });
+    gui.add(settings, 'qrMarginTop', -50, 100, 1).name('Margin Top').onChange(() => { updateQR(); saveSettings(); });
+    gui.add(settings, 'qrOpacity', 0, 1, 0.01).name('Opacity').onChange(() => { updateQR(); saveSettings(); });
+    gui.add(settings, 'showLabel').name('Show Label').onChange(() => { updateQR(); saveSettings(); });
+    gui.add(settings, 'label').name('Label Text').onFinishChange(() => { updateQR(); saveSettings(); });
+    
+    gui.add({ reset: () => {
+        Object.assign(settings, defaultSettings);
+        saveSettings();
+        updateQR();
+        gui.controllers.forEach(c => c.updateDisplay());
+    }}, 'reset').name('Reset to Defaults');
+
+    // Position GUI
+    gui.domElement.style.position = 'fixed';
+    gui.domElement.style.top = '80px';
+    gui.domElement.style.right = '20px';
+    gui.domElement.style.zIndex = '1000';
 });
+
