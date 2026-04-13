@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="cbd830e1-1401-4152-8533-9325794fdfaf"></script>
 </head>
 
 <body>
@@ -52,6 +53,8 @@
 
     <!-- UI Overlay for Inspections -->
     <div id="ui-overlay">
+        <!-- Speech Bubble -->
+        <div id="speech-bubble" class="hidden">Click me to chat!</div>
         <!-- 2D Overlay Panel For Mobile -->
         <div id="mobile-overlay-panel" class="mobile-overlay hidden">
             <div class="mobile-overlay-header">
@@ -109,7 +112,7 @@
 
     <!-- UI Overlay for Inspections -->
     <div id="quick-links" class="quick-links">
-        <a href="./plain.html" class="neon-btn quick-cv-link">
+        <a href="./plain.html" class="neon-btn quick-cv-link" onclick="window.umami && window.umami.track('cv_link_click', { type: 'simple' })">
             📄 SIMPLE_CV
         </a>
     </div>

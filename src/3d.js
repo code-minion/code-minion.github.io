@@ -5,6 +5,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { Billboard } from './billboard.js';
 import cvData from './cv-data.json';
+import { track } from './analytics.js';
 
 // =============================================
 // THE_WEBSITE_CORE — src/3d.js
@@ -282,7 +283,18 @@ async function loadModel() {
 
             // Hide Loader
             loaderDiv.style.opacity = '0';
-            setTimeout(() => loaderDiv.style.display = 'none', 500);
+            setTimeout(() => {
+                loaderDiv.style.display = 'none';
+                setTimeout(() => {
+                    const bubble = document.getElementById('speech-bubble');
+                    if (bubble && !bubble.classList.contains('hidden') && bubble.style.display !== 'none') {
+                        // Just a safety check if it was opened before 1s
+                    } else if (bubble) {
+                        bubble.classList.remove('hidden');
+                        track('speech_bubble_shown');
+                    }
+                }, 1000);
+            }, 500);
 
             // Auto-spawn the home billboard so it's visible immediately on load
             handleNavAction('home');
@@ -388,8 +400,13 @@ function onCanvasClick(event) {
             // Per-row hit test for TABLE billboards
             if (bb.hitTest && hit.uv) {
                 const rowHit = bb.hitTest(hit.uv);
-                if (rowHit) { window.open(`./project.html?id=${rowHit.id}`, '_blank'); return; }
+                if (rowHit) { 
+                    track('project_detail_view', { projectId: rowHit.id });
+                    window.open(`./project.html?id=${rowHit.id}`, '_blank'); 
+                    return; 
+                }
             }
+            track('billboard_click', { section: bb.type });
             if (bb.onClick) bb.onClick(bb.onClickData);
             return;
         }
@@ -546,6 +563,7 @@ function showMobileOverlay(title, action) {
 
 function handleNavAction(action) {
     console.log(`NAVIGATING_TO: ${action.toUpperCase()}`);
+    track('nav_click', { section: action });
 
     if (action === 'cv') {
         window.location.href = './cv.html';
