@@ -118,9 +118,20 @@
       ]
     },
     {
+      "title": "SENIOR DEVELOPER (SUBCONTRACTOR TO ASB)",
+      "company": "Datacom",
+      "period": "2020 → 2021",
+      "description": "Sub-contracted directly to ASB Bank, initiating work on the digital transformation of FNB and Home Lending products. Built foundational C# .NET backend services to automate complex lending workflows.",
+      "tags": [
+        "C# .NET",
+        "API Design",
+        "Workflow Automation"
+      ]
+    },
+    {
       "title": "CREATIVE TECHNOLOGIST (FULL-STACK)",
       "company": "Rush Digital",
-      "period": "2016 → 2018",
+      "period": "2017 → 2019",
       "description": "Architected multi-modal digital experiences across Computer Vision, AR/VR (XR), and high-scale mobile platforms. Spearheaded the development of complex chatbot ecosystems and low-level driver integrations for enterprise clients. Operated as a key technical pivot between creative design teams and engineering squads, translating high-level concepts into stable, production-ready code in a high-velocity agency environment.",
       "tags": [
         "Computer Vision",
@@ -234,7 +245,7 @@
           "url": "#"
         }
       ],
-      "featured": true
+      "featured": false
     },
     {
       "id": "ascend-xr-hololens",

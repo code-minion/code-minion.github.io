@@ -1,0 +1,204 @@
+{
+  "contact": {
+    "name": "Bradley Chan",
+    "role": "SENIOR BACKEND ENGINEER // C# .NET DEVELOPER",
+    "linkedin": "linkedin.com/in/codeminion",
+    "location": "Hong Kong"
+  },
+  "stats": {
+    "yearsExp": "16",
+    "roles": "9+",
+    "stacks": "5+",
+    "degrees": "2"
+  },
+  "summary": "Hands-on core developer and strategic technical engineer with 16 years of expertise building high-performance, resilient distributed systems in C# .NET. Proven track record of spearheading greenfield development, architecting scalable infrastructure from scratch, and optimizing high-volume transaction workflows. I thrive in collaborative, intellectually stimulating environments where I can work closely with business and engineering teams to solve complex problems at scale with real-world impact.",
+  "skills": [
+    {
+      "name": "C# .NET Core",
+      "proficiency": "expert"
+    },
+    {
+      "name": "High-Performance Computing",
+      "proficiency": "expert"
+    },
+    {
+      "name": "Greenfield Development",
+      "proficiency": "expert"
+    },
+    {
+      "name": "Distributed Backend Systems",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "API Design & Integration",
+      "proficiency": "expert"
+    },
+    {
+      "name": "System Architecture",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "SQL & Data Workflows",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Scalable Systems",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Modern Web Development",
+      "proficiency": "intermediate"
+    },
+    {
+      "name": "Cloud Fundamentals",
+      "proficiency": "intermediate"
+    }
+  ],
+  "targetRoles": [
+    "C# Developer",
+    "Senior Software Engineer",
+    "Backend Engineer",
+    ".NET Developer",
+    "Core Developer"
+  ],
+  "experience": [
+    {
+      "title": "SOFTWARE SPECIALIST (TECHNICAL LEAD)",
+      "company": "ASB Bank",
+      "period": "2024 to Current",
+      "description": "Leading the greenfield development of high-concurrency backend services within the Share Trading and Trade Banking domains. Extensively hands-on with C# .NET Core, building scalable, robust systems from scratch to handle large volumes of data with high performance and reliability. Serving as a primary technical liaison between stakeholders and engineering squads, functioning across the full SDLC to deliver strategic banking enhancements and diagnose complex technical issues in production.",
+      "tags": [
+        "C# .NET Core",
+        "Greenfield Build",
+        "High-Volume Systems",
+        "Backend Architecture"
+      ]
+    },
+    {
+      "title": "SENIOR SOFTWARE ENGINEER",
+      "company": "Serko",
+      "period": "2022 → 2024",
+      "description": "Engineered scalable high-performance C# .NET solutions for global flight booking engines, successfully handling immense search-traffic load. Led backend performance optimization initiatives, heavily reducing latency across critical paths. Architected data aggregation workflows from the ground up to support sub-300ms multi-provider search strategies, resolving complex business and technical bottlenecks.",
+      "tags": [
+        "Performance Optimization",
+        "C# .NET",
+        "Scalable Systems",
+        "Complex Problem Solving"
+      ]
+    },
+    {
+      "title": "SOFTWARE SPECIALIST / SENIOR DEVELOPER",
+      "company": "ASB Bank",
+      "period": "2021 → 2022",
+      "description": "Developed modern web application platforms and backend services for FNB and Home Lending products. Contributed to major digital transformation projects, writing robust C# .NET services to automate complex lending workflows and integrations. Supported rigorous requirements gathering through to production release.",
+      "tags": [
+        "C# .NET",
+        "API Design",
+        "Workflow Automation"
+      ]
+    },
+    {
+      "title": "SENIOR DEVELOPER (SUBCONTRACTOR TO ASB)",
+      "company": "Datacom",
+      "period": "2020 → 2021",
+      "description": "Sub-contracted directly to ASB Bank, initiating work on the digital transformation of FNB and Home Lending products. Built foundational C# .NET backend services to automate complex lending workflows.",
+      "tags": [
+        "C# .NET",
+        "API Design",
+        "Workflow Automation"
+      ]
+    },
+    {
+      "title": "CREATIVE TECHNOLOGIST (FULL-STACK)",
+      "company": "Rush Digital",
+      "period": "2017 → 2019",
+      "description": "Architected multi-modal digital experiences across Computer Vision, AR/VR (XR), and high-scale mobile platforms. Spearheaded the development of complex chatbot ecosystems and low-level driver integrations for enterprise clients. Operated as a key technical pivot between creative design teams and engineering squads, translating high-level concepts into stable, production-ready code in a high-velocity agency environment.",
+      "tags": [
+        "C#",
+        "System Integration",
+        "Agile SDLC"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor of Software Engineering",
+      "institution": "Media Design School, Auckland",
+      "year": 2014
+    },
+    {
+      "degree": "Bachelor of Information Systems",
+      "institution": "Massey University, Auckland",
+      "year": 2009
+    }
+  ],
+  "languages": [
+    {
+      "language": "English",
+      "level": "Native or Bilingual"
+    },
+    {
+      "language": "Chinese (Cantonese)",
+      "level": "Limited Working"
+    },
+    {
+      "language": "Chinese (Mandarin)",
+      "level": "Limited Working"
+    }
+  ],
+  "projects": [
+    {
+      "id": "idle-jobber",
+      "title": "Idle Jobber",
+      "year": 2026,
+      "description": "Job-search automation pipeline tool. Deals with robustly parsing and mapping data across distributed agentic workflows.",
+      "summary": "Job-search automation pipeline.",
+      "tags": [
+        "Data Workflows",
+        "Backend Service",
+        "Automation"
+      ],
+      "links": [],
+      "featured": true
+    },
+    {
+      "id": "ascend-xr-hololens",
+      "title": "Ascend Reality HoloLens App",
+      "year": 2021,
+      "summary": "High-fidelity XR navigation experience for virtual apartments.",
+      "description": "HoloLens 2 mixed reality app requiring highly optimized C# code. Spatial anchoring, gesture control, and real-time computation under strict performance budgets.",
+      "tags": [
+        "C# Hands-on",
+        "Performance",
+        "Optimization"
+      ],
+      "links": [],
+      "featured": true
+    },
+    {
+      "id": "thermoking-nz",
+      "title": "ThermoKing NZ",
+      "year": 2020,
+      "summary": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
+      "description": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
+      "tags": [
+        "Full-stack",
+        "Project Management"
+      ],
+      "image": null,
+      "links": [],
+      "featured": false
+    }
+  ],
+  "preferences": {
+    "locations": [
+      "Hong Kong"
+    ],
+    "keywords": [
+      "C#",
+      ".NET",
+      "Backend",
+      "Performance"
+    ]
+  }
+}
