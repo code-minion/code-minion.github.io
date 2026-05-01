@@ -87,6 +87,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Education & Others
     const langHtml = (cvData.languages || []).map(l => typeof l === 'string' ? l : `${l.language} (${l.level})`).join(', ');
+    const educationHtml = (cvData.education || []).map(ed => `
+        <div class="entry">
+            <div class="entry-header">
+                <h3>${ed.degree}</h3>
+                <span class="entry-date">${ed.year}</span>
+            </div>
+            <div class="entry-subtitle">${ed.institution}</div>
+        </div>
+    `).join('');
     const patentHtml = (cvData.patents || []).map(p => {
         return `<li><strong>${p.title}</strong> (${p.status}, ${p.year}) - ${p.description}</li>`;
     }).join('');
@@ -121,13 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
 
         <h2>Education</h2>
-        <div class="entry">
-            <div class="entry-header">
-                <h3>Bachelor of Information Sciences (Software Engineering)</h3>
-                <span class="entry-date">Graduated 2008</span>
-            </div>
-            <div class="entry-subtitle">Massey University, New Zealand</div>
-        </div>
+        ${educationHtml}
 
         ${patentHtml ? `<h2>Patents & Publications</h2>
         <ul style="color: var(--text-secondary); font-size: 14px;">

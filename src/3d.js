@@ -549,7 +549,7 @@ function showMobileOverlay(title, action) {
         const langs = cvData.languages.map(l => `<li><strong>${l.language}</strong>: ${l.level}</li>`).join('');
         html = `<h2>Establish Connection</h2>
                 <p><strong>LinkedIn:</strong> <a href="https://${cvData.contact.linkedin}" target="_blank">${cvData.contact.linkedin}</a></p>
-                <p><strong>Loc:</strong> ${cvData.contact.location}</p>
+                <p><strong>Availability:</strong> ${cvData.contact.location}</p>
                 <hr>
                 <h2>Languages</h2>
                 <ul>${langs}</ul>
@@ -635,7 +635,7 @@ function handleNavAction(action) {
         }
         case 'contact': {
             const languages = cvData.languages.map(l => `- **${l.language}**: ${l.level}`).join('\n');
-            spawnBillboard(`## Establish Connection\n\n**LinkedIn**: ${cvData.contact.linkedin}\n**Loc**: ${cvData.contact.location}\n\n---\n## Languages\n${languages}\n\n---\nYou can also leave a message via my **AI Assistant** (click the chat icon or the character) and I will get back to you.`, basePos, {
+            spawnBillboard(`## Establish Connection\n\n**LinkedIn**: ${cvData.contact.linkedin}\n**Availability**: ${cvData.contact.location}\n\n---\n## Languages\n${languages}\n\n---\nYou can also leave a message via my **AI Assistant** (click the chat icon or the character) and I will get back to you.`, basePos, {
                 width: PW,
                 height: PH,
                 onClick: () => window.open(`https://${cvData.contact.linkedin}`, '_blank')

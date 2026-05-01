@@ -50,7 +50,7 @@ function renderData() {
     // Hero & Profile
     const codeBody = document.getElementById('code-body');
     if (codeBody) {
-        codeBody.innerHTML = `<span class="code-keyword">def</span> <span class="code-fn">initialize_engineer</span>():\n    name   = <span class="code-str">"${cvData.contact.name}"</span>\n    base   = <span class="code-str">"${cvData.contact.location.split(' . ')[0]}"</span>\n    roles  = <span class="code-str">"${cvData.targetRoles[0]}"</span>\n    <span class="code-keyword">while</span> <span class="code-bool">True</span>:\n        <span class="code-fn">solve_hard_problems</span>()\n        <span class="code-fn">mentor_team</span>()\n        <span class="code-fn">ship_quality_code</span>()`;
+        codeBody.innerHTML = `<span class="code-keyword">def</span> <span class="code-fn">initialize_architect</span>():\n    name     = <span class="code-str">"${cvData.contact.name}"</span>\n    location = <span class="code-str">"${cvData.contact.location}"</span>\n    role     = <span class="code-str">"${cvData.targetRoles[0]}"</span>\n    <span class="code-keyword">while</span> <span class="code-bool">True</span>:\n        <span class="code-fn">frame_tradeoffs</span>()\n        <span class="code-fn">mentor_team</span>()\n        <span class="code-fn">ship_evolvable_systems</span>()`;
     }
 
     const heroBody = document.getElementById('hero-body');
@@ -82,7 +82,7 @@ function renderData() {
             <div class="terminal-panel project-card" style="cursor: pointer;" onclick="window.open('./project.html?id=${proj.id}', '_blank')">
                 <div class="panel-title-bar">
                     <span class="panel-title">PROJECT :: ${proj.title.toUpperCase()}</span>
-                    <span style="color:var(--neon-pink); font-size: 10px;">${proj.year}</span>
+                    <span style="color:var(--pink); font-size: 10px;">${proj.year}</span>
                 </div>
                 <div class="project-body">
                     <p class="project-desc">${proj.summary}</p>

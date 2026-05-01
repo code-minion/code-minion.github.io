@@ -3,7 +3,7 @@
     "name": "Bradley Chan",
     "role": "SOFTWARE_ARCHITECT // SENIOR_TECHNICAL_LEAD",
     "linkedin": "linkedin.com/in/codeminion",
-    "location": "Hong Kong"
+    "location": "Global / Remote-ready"
   },
   "stats": {
     "yearsExp": "16",
@@ -11,7 +11,7 @@
     "stacks": "5+",
     "degrees": "2"
   },
-  "summary": "Strategic technical leader with 16 years of expertise in architecting resilient distributed systems and pioneering AI Agentic frameworks. I excel at bridging the gap between executive vision and engineering excellence—driving high-impact digital transformations in the banking and fintech sectors. Proven track record in mentoring high-performing teams, optimizing SDLC with AI-assisted methodologies, and delivering scalable BFF architectures that power millions of customer interactions. Now focused on leading Hong Kong's next wave of AI-native software engineering.",
+  "summary": "Strategic technical leader with 16 years of expertise architecting resilient distributed systems, AI-native engineering practices, and product-aligned delivery platforms. I bridge executive vision and engineering reality by turning ambiguity into decision records, trade-off models, and systems that teams can evolve safely. Proven track record in mentoring senior engineers, improving SDLC flow with AI-assisted methods, and delivering scalable BFF and service architectures for high-stakes financial, travel, and digital-product domains.",
   "skills": [
     {
       "name": "C# .NET",
@@ -144,7 +144,7 @@
       "title": "TECHNICAL ADVISORY & FOUNDATIONAL ENGINEERING",
       "company": "Strategic Engagements",
       "period": "2007 → 2021",
-      "description": "Diverse background encompassing technical advisory for startups (EverSoSafe NZ), subcontracted engineering for government/enterprise (Datacom), and foundational game development (CerebralFix). Specialized in rapid technical assessment, architectural cleanup, and cross-platform deployment. Leveraged deep expertise in Unity/C# and full-stack web technologies to support various innovation-driven projects.",
+      "description": "Diverse background encompassing technical advisory for startups, subcontracted engineering for government and enterprise clients, and foundational game development. Specialized in rapid technical assessment, architectural cleanup, and cross-platform deployment. Leveraged deep expertise in Unity/C# and full-stack web technologies to support innovation-driven projects across markets.",
       "tags": [
         "Technical Advisory",
         "Foundational Engineering",
@@ -155,12 +155,12 @@
   "education": [
     {
       "degree": "Bachelor of Software Engineering",
-      "institution": "Media Design School, Auckland",
+      "institution": "Media Design School",
       "year": 2014
     },
     {
       "degree": "Bachelor of Information Systems",
-      "institution": "Massey University, Auckland",
+      "institution": "Massey University",
       "year": 2009
     }
   ],
@@ -183,6 +183,27 @@
     }
   ],
   "projects": [
+    {
+      "id": "market-systems-architecture-lab",
+      "title": "Market Systems Architecture Lab",
+      "year": 2026,
+      "description": "An interactive one-page architecture case study for a hypothetical market-intelligence platform. The scenario explores how to ingest fast-moving signals, preserve auditability, isolate risk, and keep research teams productive without turning every experiment into production infrastructure.",
+      "summary": "Hypothetical quant-style architecture demo for market signals, risk controls, and evolvable delivery.",
+      "tags": [
+        "Software Architecture",
+        "Systems Thinking",
+        "Leadership"
+      ],
+      "image": null,
+      "links": [
+        {
+          "label": "OPEN_DEMO",
+          "url": "project.html?id=market-systems-architecture-lab"
+        }
+      ],
+      "featured": true,
+      "demo": "market-systems"
+    },
     {
       "id": "idle-jobber",
       "title": "Idle Jobber",
@@ -217,8 +238,8 @@
       "image": "wp-chatbot-opensource.png",
       "links": [
         {
-          "label": "EXAMPLE_WEBSITE",
-          "url": "https://www.epe.co.nz/"
+          "label": "EXAMPLE_BY_REQUEST",
+          "url": "#"
         },
         {
           "label": "OPEN_SOURCE",
@@ -273,11 +294,14 @@
       "featured": true
     },
     {
-      "id": "thermoking-nz",
-      "title": "ThermoKing NZ",
+      "id": "field-service-platform",
+      "title": "ThermoKing Operations Platform",
+      "aliases": [
+        "thermoking-nz"
+      ],
       "year": 2020,
-      "summary": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
-      "description": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
+      "summary": "Sole developer for an operations task-tracking system, spanning project management, stakeholder liaison, and software delivery.",
+      "description": "Sole developer for an operations task-tracking system, spanning project management, stakeholder liaison, and software delivery.",
       "tags": [
         "Full-stack",
         "Project Management"
@@ -313,7 +337,9 @@
   ],
   "preferences": {
     "locations": [
-      "Hong Kong"
+      "Global",
+      "Remote",
+      "Hybrid"
     ],
     "keywords": [
       "Senior Software Engineer",
