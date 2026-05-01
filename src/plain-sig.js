@@ -121,13 +121,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${projHtml}
 
         <h2>Education</h2>
+        ${cvData.education.map(ed => `
         <div class="entry">
             <div class="entry-header">
-                <h3>Bachelor of Information Sciences (Software Engineering)</h3>
-                <span class="entry-date">Graduated 2008</span>
+                <h3>${ed.degree}</h3>
+                <span class="entry-date">${ed.year}</span>
             </div>
-            <div class="entry-subtitle">Massey University, New Zealand</div>
-        </div>
+            <div class="entry-subtitle">${ed.institution}</div>
+        </div>`).join('')}
 
         ${patentHtml ? `<h2>Patents & Publications</h2>
         <ul style="color: var(--text-secondary); font-size: 14px;">

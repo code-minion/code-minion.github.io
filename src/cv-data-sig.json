@@ -1,9 +1,9 @@
 {
   "contact": {
     "name": "Bradley Chan",
-    "role": "SENIOR BACKEND ENGINEER // C# .NET DEVELOPER",
+    "role": "SENIOR BACKEND ENGINEER // SOFTWARE ARCHITECT",
     "linkedin": "linkedin.com/in/codeminion",
-    "location": "Hong Kong"
+    "location": "Global / Remote-ready"
   },
   "stats": {
     "yearsExp": "16",
@@ -11,7 +11,7 @@
     "stacks": "5+",
     "degrees": "2"
   },
-  "summary": "Hands-on core developer and strategic technical engineer with 16 years of expertise building high-performance, resilient distributed systems in C# .NET. Proven track record of spearheading greenfield development, architecting scalable infrastructure from scratch, and optimizing high-volume transaction workflows. I thrive in collaborative, intellectually stimulating environments where I can work closely with business and engineering teams to solve complex problems at scale with real-world impact.",
+  "summary": "Hands-on core developer and strategic technical engineer with 16 years of expertise building high-performance, resilient distributed systems in C# .NET. Proven track record of spearheading greenfield development, architecting scalable infrastructure from scratch, and turning ambiguous business goals into explicit technical decisions. I thrive in collaborative, intellectually stimulating environments where I can work closely with business and engineering teams to solve complex problems at scale with real-world impact.",
   "skills": [
     {
       "name": "C# .NET Core",
@@ -123,12 +123,12 @@
   "education": [
     {
       "degree": "Bachelor of Software Engineering",
-      "institution": "Media Design School, Auckland",
+      "institution": "Media Design School",
       "year": 2014
     },
     {
       "degree": "Bachelor of Information Systems",
-      "institution": "Massey University, Auckland",
+      "institution": "Massey University",
       "year": 2009
     }
   ],
@@ -176,8 +176,8 @@
       "featured": true
     },
     {
-      "id": "thermoking-nz",
-      "title": "ThermoKing NZ",
+      "id": "field-service-ops-platform",
+      "title": "Field Service Ops Platform",
       "year": 2020,
       "summary": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
       "description": "Sole agent developing their task-tracking system, performing project management, client liaison and software development.",
@@ -192,7 +192,7 @@
   ],
   "preferences": {
     "locations": [
-      "Hong Kong"
+      "Global / Remote-ready"
     ],
     "keywords": [
       "C#",

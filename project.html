@@ -10,22 +10,44 @@
     <style>
       .project-details { font-family: 'Outfit', sans-serif; padding: 20px 0; }
       .project-details p { margin-bottom: 20px; line-height: 1.6; font-size: 1.1rem; color: #ddd; }
-      .project-details h1 { color: var(--neon-blue); font-size: 2.5rem; margin-bottom: 10px; }
-      .project-details h2 { color: var(--neon-cyan); margin: 30px 0 15px; }
+      .project-details h1 { color: var(--cyan); font-size: 2.5rem; margin-bottom: 10px; }
+      .project-details h2 { color: var(--cyan); margin: 30px 0 15px; }
       .project-details ul { margin-left: 20px; margin-bottom: 20px; color: #ccc; }
       .project-details li { margin-bottom: 10px; }
       .large-tag-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
-      .large-tag { background: rgba(255,255,255,0.05); border: 1px solid var(--neon-pink); padding: 5px 15px; border-radius: 4px; color: var(--neon-pink); }
+      .large-tag { background: rgba(255,255,255,0.05); border: 1px solid var(--pink); padding: 5px 15px; border-radius: 4px; color: var(--pink); }
       .repo-links { display: flex; flex-wrap: wrap; gap: 15px; margin: 30px 0; }
-      .btn-link { display: inline-block; padding: 10px 20px; background: rgba(0,210,255,0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); text-decoration: none; border-radius: 4px; transition: all 0.3s; white-space: nowrap; }
-      .btn-link:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
+      .btn-link { display: inline-block; padding: 10px 20px; background: rgba(0,210,255,0.1); border: 1px solid var(--cyan); color: var(--cyan); text-decoration: none; border-radius: 4px; transition: all 0.3s; white-space: nowrap; }
+      .btn-link:hover { background: var(--cyan); color: #000; box-shadow: 0 0 15px var(--cyan); }
       .btn-inactive { background: rgba(255,255,255,0.05); border-color: #4a6a7e; color: #4a6a7e; pointer-events: none; box-shadow: none; }
       .hero-img-container { width: 100%; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; overflow: hidden; margin-bottom: 30px; display: none; }
       .hero-img-container img { width: 100%; height: auto; display: block; }
+      .architect-demo { display: grid; gap: 22px; }
+      .demo-kicker { color: var(--pink); font-family: var(--font-head); font-size: 0.72rem; letter-spacing: 2px; }
+      .demo-lede { color: #c9d7e2; max-width: 78ch; }
+      .architect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .demo-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 20px; background: rgba(255,255,255,0.035); }
+      .demo-card.span-2 { grid-column: 1 / -1; }
+      .demo-card h2 { margin-top: 0; font-size: 1.05rem; }
+      .demo-card h3 { color: var(--pink); margin: 12px 0 8px; }
+      .demo-card blockquote { border-left: 3px solid var(--pink); padding-left: 15px; color: #f1dbe5; font-size: 1.15rem; line-height: 1.7; }
+      .lens-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+      .lens-tab { border: 1px solid rgba(0,210,255,0.45); background: rgba(0,210,255,0.08); color: var(--cyan); padding: 9px 14px; border-radius: 999px; cursor: pointer; font-family: inherit; }
+      .lens-tab.active, .lens-tab:hover { background: var(--cyan); color: #06101a; box-shadow: 0 0 12px rgba(0,210,255,0.35); }
+      .lens-panel, .tradeoff-panel { min-height: 180px; border: 1px dashed rgba(0,210,255,0.35); padding: 16px; border-radius: 8px; color: #c9d7e2; background: rgba(0,210,255,0.035); margin-top: 14px; }
+      .demo-signal { color: var(--green); border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-family: var(--font-mono); }
+      .demo-select { width: 100%; margin: 8px 0 14px; padding: 10px; color: #d9eef8; background: rgba(5,12,20,0.9); border: 1px solid rgba(255,45,126,0.45); border-radius: 6px; }
+      .metric-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .metric-row span { border: 1px solid rgba(255,45,126,0.35); border-radius: 999px; color: #ffd6e5; padding: 4px 10px; font-size: 0.85rem; }
+      .principle-row { display: grid; grid-template-columns: 42px 1fr; gap: 14px; border-top: 1px solid rgba(255,255,255,0.08); padding: 14px 0; }
+      .principle-row span { color: var(--cyan); font-family: var(--font-head); }
+      .principle-row p { margin: 0; }
       @media (max-width: 600px) {
         .project-details h1 { font-size: 1.8rem; }
         .terminal-panel { padding: 20px !important; }
         .repo-links { gap: 10px; }
+        .architect-grid { grid-template-columns: 1fr; }
+        .demo-card.span-2 { grid-column: auto; }
       }
     </style>
   </head>
