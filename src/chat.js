@@ -16,6 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let contextExhausted = false;
     let currentChipsContainer = null;
     const chatId = crypto.randomUUID();
+    const SELF_AWARENESS_CONTEXT = [
+        'Context for CODEMINION_AI behavior:',
+        '- You are CODEMINION_AI, the AI assistant embedded in code-minion.github.io.',
+        "- This chat assistant itself is one of Bradley Chan's real AI applications.",
+        "- If asked about Bradley's AI applications, include this chatbot as a concrete example before listing other AI work.",
+        '- Keep responses factual and grounded in available CV and project context.'
+    ].join('\n');
 
     const isMobileQuery = window.matchMedia('(max-width: 768px)');
     let isMobile = isMobileQuery.matches;
@@ -93,6 +100,65 @@ document.addEventListener('DOMContentLoaded', () => {
         updateMobileLayout();
     });
 
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderInlineMarkdown(text) {
+        return text
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+            .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+            .replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+    }
+
+    function renderMarkdownToSafeHtml(rawText) {
+        const codeBlocks = [];
+        const normalized = (rawText || '').replace(/\r\n/g, '\n');
+        const withCodePlaceholders = normalized.replace(/```([\s\S]*?)```/g, (_, code) => {
+            const token = `@@CODEBLOCK_${codeBlocks.length}@@`;
+            codeBlocks.push(code.trim());
+            return token;
+        });
+
+        const escaped = escapeHtml(withCodePlaceholders);
+        const blocks = escaped.split(/\n{2,}/).filter(Boolean);
+
+        const html = blocks.map(block => {
+            const lines = block.split('\n').filter(Boolean);
+            const isUnorderedList = lines.length > 0 && lines.every(line => /^\s*[-*]\s+/.test(line));
+            if (isUnorderedList) {
+                const items = lines
+                    .map(line => line.replace(/^\s*[-*]\s+/, '').trim())
+                    .map(item => `<li>${renderInlineMarkdown(item)}</li>`)
+                    .join('');
+                return `<ul>${items}</ul>`;
+            }
+
+            const isOrderedList = lines.length > 0 && lines.every(line => /^\s*\d+\.\s+/.test(line));
+            if (isOrderedList) {
+                const items = lines
+                    .map(line => line.replace(/^\s*\d+\.\s+/, '').trim())
+                    .map(item => `<li>${renderInlineMarkdown(item)}</li>`)
+                    .join('');
+                return `<ol>${items}</ol>`;
+            }
+
+            return `<p>${renderInlineMarkdown(block.replace(/\n/g, '<br>'))}</p>`;
+        }).join('');
+
+        return html.replace(/@@CODEBLOCK_(\d+)@@/g, (_, index) => {
+            const code = escapeHtml(codeBlocks[Number(index)] || '');
+            return `<pre><code>${code}</code></pre>`;
+        });
+    }
+
     // ---- Chip Logic ----
     function renderChips(chipsLabels) {
         if (currentChipsContainer) {
@@ -140,6 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return { reply: rawText, chips: [] };
     }
 
+    function getHistoryWithSessionContext() {
+        return [{ role: 'user', text: SELF_AWARENESS_CONTEXT }, ...history];
+    }
+
     // Render initial chips
     renderChips(["Send Bradley a message", "What's his tech stack?", "Tell me about his projects"]);
 
@@ -147,7 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function addMessage(text, isUser = false) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `chat-msg ${isUser ? 'user-msg' : 'bot-msg'}`;
-        msgDiv.innerText = text;
+        if (isUser) {
+            msgDiv.innerText = text;
+        } else {
+            msgDiv.innerHTML = renderMarkdownToSafeHtml(text);
+        }
         chatHistory.appendChild(msgDiv);
         chatHistory.scrollTop = chatHistory.scrollHeight;
         return msgDiv;
@@ -203,7 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
         try {
-            const { reply: rawReply, finishReason } = await sendMessage(text, history, chatId);
+            const historyWithContext = getHistoryWithSessionContext();
+            const { reply: rawReply, finishReason } = await sendMessage(text, historyWithContext, chatId);
             
             const { reply, chips } = parseChips(rawReply);
 

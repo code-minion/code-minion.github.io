@@ -137,6 +137,56 @@
     border-bottom-left-radius: 2px;
 }
 
+.bot-msg p {
+    margin: 0;
+}
+
+.bot-msg p + p {
+    margin-top: 10px;
+}
+
+.bot-msg ul,
+.bot-msg ol {
+    margin: 6px 0 0 18px;
+    padding: 0;
+}
+
+.bot-msg li + li {
+    margin-top: 4px;
+}
+
+.bot-msg code {
+    background: rgba(0, 0, 0, 0.35);
+    color: #9de5ff;
+    border: 1px solid rgba(157, 229, 255, 0.25);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    font-size: 0.8em;
+}
+
+.bot-msg pre {
+    margin: 8px 0 0 0;
+    padding: 10px;
+    overflow-x: auto;
+    border-radius: 6px;
+    border: 1px solid rgba(157, 229, 255, 0.2);
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.bot-msg pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: #cff5ff;
+}
+
+.bot-msg a {
+    color: var(--accent-blue, #00d2ff);
+    text-decoration: underline;
+    word-break: break-all;
+}
+
 .typing-indicator {
     padding: 10px 14px;
     display: flex;
