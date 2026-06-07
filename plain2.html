@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bradley Chan - CV (dense layout experiment)</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/plain2.css">
+</head>
+<body>
+    <div id="print-controls" class="no-print">
+        <span class="exp-label">Experimental layout — not linked from site</span>
+        <button id="print-btn" type="button">Print to PDF</button>
+    </div>
+    <div id="cv-container" class="cv-document cv-document--dense">
+        <!-- Rendered by plain2.js -->
+    </div>
+
+    <script type="module" src="./src/plain2.js"></script>
+    <script>
+        document.getElementById('print-btn').addEventListener('click', () => {
+            const isInApp = /FBAN|FBAV|Instagram|Threads|Snapchat|Line|Pinterest|MicroMessenger/i.test(navigator.userAgent);
+            if (isInApp) {
+                alert('Open this page in Safari or Chrome to print / save as PDF.');
+                return;
+            }
+            setTimeout(() => window.print(), 50);
+        });
+    </script>
+</body>
+</html>

@@ -15,6 +15,7 @@ export default defineConfig({
         cv: resolve(__dirname, 'cv.html'),
         project: resolve(__dirname, 'project.html'),
         plain: resolve(__dirname, 'plain.html'),
+        plain2: resolve(__dirname, 'plain2.html'),
         plainSig: resolve(__dirname, 'plain-sig.html'),
       },
     },
