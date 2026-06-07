@@ -1,7 +1,7 @@
 {
   "contact": {
     "name": "Bradley Chan",
-    "role": "SOFTWARE_ARCHITECT // SENIOR_TECHNICAL_LEAD",
+    "role": "LEAD-LEVEL DEVELOPER // SENIOR SOFTWARE ENGINEER",
     "linkedin": "linkedin.com/in/codeminion",
     "location": "Region-agnostic / Open to travel"
   },
@@ -11,7 +11,7 @@
     "stacks": "5+",
     "degrees": "2"
   },
-  "summary": "Strategic technical leader with 16 years of expertise in architecting resilient distributed systems and pioneering AI Agentic frameworks. I excel at bridging the gap between executive vision and engineering excellence—driving high-impact digital transformations in the banking and fintech sectors. Proven track record in mentoring high-performing teams, optimizing SDLC with AI-assisted methodologies, and delivering scalable BFF architectures that power millions of customer interactions. Now focused on building the next wave of AI-native software engineering globally.",
+  "summary": "Lead-level developer · 16 years (since 2010) · C# / .NET BFF · React · banking (ASB) & travel tech (Serko) · AI-assisted delivery & LLM integration · mentoring · open to Hong Kong & remote lead / senior IC roles.",
   "skills": [
     {
       "name": "C# .NET",
@@ -325,6 +325,63 @@
       "AI Integration Specialist",
       "AI Developer",
       "Software Architect"
+    ]
+  },
+  "plain2": {
+    "skillGroups": [
+      {
+        "label": "Backend & APIs",
+        "items": [
+          "C# / .NET (Core)",
+          "ASP.NET Web APIs",
+          "BFF & integration-heavy systems",
+          "SQL Server",
+          "API design"
+        ]
+      },
+      {
+        "label": "Frontend",
+        "items": [
+          "React",
+          "TypeScript / JavaScript",
+          "Modern web apps & forms"
+        ]
+      },
+      {
+        "label": "AI & delivery",
+        "items": [
+          "LLM API integration",
+          "Prompt design",
+          "AI-assisted SDLC",
+          "Shipped: portfolio chatbot, WP plugin, Idle Jobber"
+        ]
+      },
+      {
+        "label": "Leadership & domains",
+        "items": [
+          "Hands-on technical lead",
+          "Mentoring & observability (Serko)",
+          "Banking (ASB)",
+          "Travel / booking (Serko)"
+        ]
+      }
+    ],
+    "interests": [
+      "Unity / game development — CerebralFix, student titles",
+      "XR / HoloLens — Rush (virtual apartment tours)",
+      "Computer vision & enterprise chatbots — agency work",
+      "Azure / cloud — fundamentals; Serko flight search",
+      "PHP / WordPress — open-source AI chatbot plugin",
+      "React Native — ASB lending mobile surfaces",
+      "Docker / CI/CD — working knowledge"
+    ],
+    "certifications": [
+      "SafeStack Security Architect Level 1 (2021)"
+    ],
+    "openTo": [
+      "Technical Lead · Senior / Staff IC · Software Architect",
+      "Hong Kong (relocation) · remote or hybrid",
+      ".NET / full-stack · fintech · enterprise"
     ]
   }
 }
