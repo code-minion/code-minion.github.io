@@ -1,4 +1,4 @@
-import { sendMessage, MAX_TURNS } from './llm-client.js';
+import { sendMessage, MAX_TURNS, suggestionForRetryHint } from './llm-client.js';
 import { track } from './analytics.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -303,7 +303,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             typingDiv.remove();
-            addMessage(`[ERROR]: ${e.message}`, false);
+            // Show the backend's user-facing message as-is (it's already written to be
+            // shown to a visitor); fall back to a generic notice for unexpected errors
+            // instead of leaking raw exception text like "BFF returned 500".
+            const baseMessage = e.message && !/^BFF returned \d+$/.test(e.message)
+                ? e.message
+                : "Sorry, something went wrong on my end. Please try again in a moment.";
+            // Append a targeted next step (refresh vs. wait) based on what kind of
+            // failure this was, instead of always saying the same generic thing.
+            const suggestion = suggestionForRetryHint(e.retryHint);
+            addMessage(`${baseMessage}${suggestion}`, false);
+            track('chat_error_shown', { retryHint: e.retryHint || 'none' });
         } finally {
             if (!contextExhausted) {
                 chatInput.disabled = false;
