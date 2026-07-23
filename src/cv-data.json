@@ -11,7 +11,7 @@
     "stacks": "5+",
     "degrees": "2"
   },
-  "summary": "Lead-level developer · 16 years (since 2010) · C# / .NET BFF · React · banking (ASB) & travel tech (Serko) · AI-assisted delivery & LLM integration · mentoring · open to Hong Kong & remote lead / senior IC roles.",
+  "summary": "Lead-level developer · 16 years (since 2010) · C# / .NET BFF · React · banking (ASB) & travel tech (Serko) · multi-cloud (Azure / AWS / GCP) & AI-assisted delivery · LLM integration · Microsoft AI-200 certified · mentoring · open to Hong Kong & remote lead / senior IC roles.",
   "skills": [
     {
       "name": "C# .NET",
@@ -58,8 +58,8 @@
       "proficiency": "advanced"
     },
     {
-      "name": "Cloud fundamentals",
-      "proficiency": "intermediate"
+      "name": "Cloud (Azure / AWS / GCP)",
+      "proficiency": "advanced"
     },
     {
       "name": "Javascript",
@@ -68,6 +68,22 @@
     {
       "name": "Game development",
       "proficiency": "intermediate"
+    },
+    {
+      "name": "Docker / containerisation",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Databases (SQL Server primary; MongoDB & PostgreSQL working knowledge)",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "Messaging & event streaming (Kafka, IBM MQ, Azure Service Bus / Event Grid)",
+      "proficiency": "advanced"
+    },
+    {
+      "name": "DevOps mindset (end-to-end product ownership)",
+      "proficiency": "advanced"
     }
   ],
   "targetRoles": [
@@ -79,18 +95,20 @@
     "Fintech Engineer",
     "AI Integration Specialist",
     "AI Developer",
-    "Software Architect"
+    "Software Architect",
+    "Technical Consultant"
   ],
   "experience": [
     {
       "title": "SOFTWARE SPECIALIST (TECHNICAL LEAD)",
       "company": "ASB Bank",
       "period": "2024 to Current",
-      "description": "Architecting and leading the development of high-concurrency BFF (Backend-for-Frontend) services within the Share Trading and Trade Banking domains. Driving technical strategy and future roadmap planning for business-critical banking infrastructure. Championing the adoption of AI-assisted engineering practices across teams to increase velocity and maintain robust code hygiene. Serving as a primary technical liaison between C-suite stakeholders and cross-functional engineering squads, ensuring architectural alignment with long-term business objectives.",
+      "description": "Architecting and leading the development of high-concurrency BFF (Backend-for-Frontend) services within the Share Trading and Trade Banking domains. Driving technical strategy and future roadmap planning for business-critical banking infrastructure. Integrates with enterprise messaging and event-streaming platforms (IBM MQ, Kafka) for two-way vendor and document-upload workflows, and pioneered runbook-driven observability practices that improved support turnaround. Championing the adoption of AI-assisted engineering practices across teams to increase velocity and maintain robust code hygiene. Serving as a primary technical liaison between C-suite stakeholders and cross-functional engineering squads, ensuring architectural alignment with long-term business objectives.",
       "tags": [
         "Infrastructure Leadership",
         "Systems Architecture",
         "AI Strategy",
+        "Integration & Messaging",
         ".NET Core"
       ]
     },
@@ -180,6 +198,24 @@
     {
       "language": "Bahasa (Malaysia)",
       "level": "Professional Working"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Microsoft Certified: Azure AI Cloud Developer Associate (AI-200)",
+      "year": 2026
+    },
+    {
+      "name": "SafeStack Security Architect Level 1",
+      "year": 2021
+    }
+  ],
+  "leadership": [
+    {
+      "role": "VP of Learning, inaugural committee",
+      "org": "SpeakIT — ASB-wide public-speaking / communication development club (Toastmasters-style)",
+      "status": "Newly launched (someone else's initiative); first session 2026",
+      "description": "Was independently looking to join a Toastmasters-style club to build presentation/communication skills, then joined SpeakIT's inaugural committee as VP of Learning when it launched. Club is open to ASB employees bank-wide."
     }
   ],
   "projects": [
@@ -324,7 +360,8 @@
       "Fintech Engineer",
       "AI Integration Specialist",
       "AI Developer",
-      "Software Architect"
+      "Software Architect",
+      "Technical Consultant"
     ]
   },
   "plain2": {
@@ -335,8 +372,18 @@
           "C# / .NET (Core)",
           "ASP.NET Web APIs",
           "BFF & integration-heavy systems",
-          "SQL Server",
+          "SQL Server (MSSQL) · MongoDB & PostgreSQL (secondary)",
+          "Messaging & event streaming — Kafka, IBM MQ, Azure Service Bus/Event Grid",
           "API design"
+        ]
+      },
+      {
+        "label": "Cloud & Infrastructure",
+        "items": [
+          "Azure · AWS · GCP (multi-cloud)",
+          "Docker / containerisation",
+          "CI/CD pipelines",
+          "DevOps mindset — end-to-end product ownership"
         ]
       },
       {
@@ -361,6 +408,8 @@
         "items": [
           "Hands-on technical lead",
           "Mentoring & observability (Serko)",
+          "Stakeholder-facing delivery — DEAs, architects, principals, business owners",
+          "VP of Learning, SpeakIT (ASB-wide public-speaking club, inaugural committee, launching 2026)",
           "Banking (ASB)",
           "Travel / booking (Serko)"
         ]
@@ -370,12 +419,11 @@
       "Unity / game development — CerebralFix, student titles",
       "XR / HoloLens — Rush (virtual apartment tours)",
       "Computer vision & enterprise chatbots — agency work",
-      "Azure / cloud — fundamentals; Serko flight search",
       "PHP / WordPress — open-source AI chatbot plugin",
-      "React Native — ASB lending mobile surfaces",
-      "Docker / CI/CD — working knowledge"
+      "React Native — ASB lending mobile surfaces"
     ],
     "certifications": [
+      "Microsoft Certified: Azure AI Cloud Developer Associate (AI-200) (2026)",
       "SafeStack Security Architect Level 1 (2021)"
     ],
     "openTo": [
