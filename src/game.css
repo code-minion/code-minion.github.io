@@ -1,0 +1,243 @@
+/* Hidden incremental game — Konami-code easter egg */
+
+#kc-game-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 12, 0.8);
+    backdrop-filter: blur(6px);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: kc-fade-in 0.25s ease;
+}
+
+@keyframes kc-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#kc-game-panel {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--glass-bg, rgba(5, 12, 20, 0.95));
+    border: 1px solid var(--accent-blue, #00d2ff);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 210, 255, 0.15);
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #fff;
+}
+
+#kc-game-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+}
+#kc-game-close:hover { color: #fff; }
+
+.kc-header {
+    text-align: center;
+    margin-bottom: 12px;
+}
+.kc-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent-blue, #00d2ff);
+}
+.kc-rank {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+    letter-spacing: 1px;
+}
+
+#kc-stage-wrap {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: radial-gradient(circle, rgba(0, 210, 255, 0.08), transparent 70%);
+}
+#kc-stage-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.kc-commits {
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.kc-rate {
+    font-size: 0.75rem;
+    color: var(--accent-blue, #00d2ff);
+    min-height: 1em;
+}
+
+#kc-click-btn {
+    display: block;
+    width: 100%;
+    margin: 12px 0 8px;
+    padding: 14px;
+    background: var(--accent-blue, #00d2ff);
+    color: #001824;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+#kc-click-btn:active { transform: scale(0.96); }
+
+#kc-crunch-btn {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--accent-pink, #ff2d7e);
+    color: var(--accent-pink, #ff2d7e);
+    border-radius: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+#kc-crunch-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.kc-upgrades {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+.kc-upgrade {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+.kc-upgrade.kc-owned {
+    opacity: 0.55;
+}
+.kc-upgrade-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+.kc-upgrade-desc {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+}
+.kc-upgrade-buy {
+    flex-shrink: 0;
+    background: rgba(0, 210, 255, 0.12);
+    border: 1px solid var(--accent-blue, #00d2ff);
+    color: var(--accent-blue, #00d2ff);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.kc-upgrade-buy:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    color: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: transparent;
+}
+
+#kc-highscore-invite {
+    margin-top: 16px;
+    padding: 12px;
+    border: 1px solid var(--accent-pink, #ff2d7e);
+    border-radius: 10px;
+    background: rgba(255, 45, 126, 0.08);
+    font-size: 0.78rem;
+}
+#kc-highscore-invite p {
+    margin: 0 0 8px;
+    color: rgba(255, 255, 255, 0.85);
+}
+#kc-name-input {
+    width: 100%;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.8rem;
+}
+#kc-highscore-submit, #kc-highscore-dismiss {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 8px;
+}
+#kc-highscore-submit {
+    background: var(--accent-pink, #ff2d7e);
+    border: none;
+    color: #fff;
+}
+#kc-highscore-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+#kc-highscore-dismiss {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+#kc-toast {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, bottom 0.2s ease;
+    white-space: nowrap;
+}
+#kc-toast.kc-toast-show {
+    opacity: 1;
+    bottom: -12px;
+}
+
+@media (max-width: 480px) {
+    #kc-game-panel {
+        max-width: 100%;
+    }
+}
