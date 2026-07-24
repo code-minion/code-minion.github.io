@@ -127,6 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
     }
 
+    // Line-based block parser: headers and horizontal rules are their own lines
+    // and often aren't blank-line-separated from surrounding text (models don't
+    // reliably add the blank line), so blocks are built line-by-line rather than
+    // by splitting on blank lines first.
     function renderMarkdownToSafeHtml(rawText) {
         const codeBlocks = [];
         const normalized = (rawText || '').replace(/\r\n/g, '\n');
@@ -137,31 +141,71 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const escaped = escapeHtml(withCodePlaceholders);
-        const blocks = escaped.split(/\n{2,}/).filter(Boolean);
+        const lines = escaped.split('\n');
 
-        const html = blocks.map(block => {
-            const lines = block.split('\n').filter(Boolean);
-            const isUnorderedList = lines.length > 0 && lines.every(line => /^\s*[-*]\s+/.test(line));
-            if (isUnorderedList) {
-                const items = lines
-                    .map(line => line.replace(/^\s*[-*]\s+/, '').trim())
-                    .map(item => `<li>${renderInlineMarkdown(item)}</li>`)
-                    .join('');
-                return `<ul>${items}</ul>`;
+        const htmlParts = [];
+        let paragraphLines = [];
+        let list = null; // { tag: 'ul'|'ol', items: [] }
+
+        function flushParagraph() {
+            if (paragraphLines.length > 0) {
+                htmlParts.push(`<p>${renderInlineMarkdown(paragraphLines.join('<br>'))}</p>`);
+                paragraphLines = [];
+            }
+        }
+        function flushList() {
+            if (list) {
+                htmlParts.push(`<${list.tag}>${list.items.join('')}</${list.tag}>`);
+                list = null;
+            }
+        }
+
+        for (const line of lines) {
+            if (line.trim() === '') {
+                flushParagraph();
+                flushList();
+                continue;
             }
 
-            const isOrderedList = lines.length > 0 && lines.every(line => /^\s*\d+\.\s+/.test(line));
-            if (isOrderedList) {
-                const items = lines
-                    .map(line => line.replace(/^\s*\d+\.\s+/, '').trim())
-                    .map(item => `<li>${renderInlineMarkdown(item)}</li>`)
-                    .join('');
-                return `<ol>${items}</ol>`;
+            const headerMatch = line.match(/^(#{1,6})\s+(.*)$/);
+            if (headerMatch) {
+                flushParagraph();
+                flushList();
+                const level = headerMatch[1].length;
+                htmlParts.push(`<h${level}>${renderInlineMarkdown(headerMatch[2].trim())}</h${level}>`);
+                continue;
             }
 
-            return `<p>${renderInlineMarkdown(block.replace(/\n/g, '<br>'))}</p>`;
-        }).join('');
+            if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) {
+                flushParagraph();
+                flushList();
+                htmlParts.push('<hr>');
+                continue;
+            }
 
+            const ulMatch = line.match(/^\s*[-*]\s+(.*)$/);
+            if (ulMatch) {
+                flushParagraph();
+                if (!list || list.tag !== 'ul') { flushList(); list = { tag: 'ul', items: [] }; }
+                list.items.push(`<li>${renderInlineMarkdown(ulMatch[1].trim())}</li>`);
+                continue;
+            }
+
+            const olMatch = line.match(/^\s*\d+\.\s+(.*)$/);
+            if (olMatch) {
+                flushParagraph();
+                if (!list || list.tag !== 'ol') { flushList(); list = { tag: 'ol', items: [] }; }
+                list.items.push(`<li>${renderInlineMarkdown(olMatch[1].trim())}</li>`);
+                continue;
+            }
+
+            flushList();
+            paragraphLines.push(line);
+        }
+        flushParagraph();
+        flushList();
+
+        const html = htmlParts.join('');
         return html.replace(/@@CODEBLOCK_(\d+)@@/g, (_, index) => {
             const code = escapeHtml(codeBlocks[Number(index)] || '');
             return `<pre><code>${code}</code></pre>`;
@@ -211,6 +255,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 reply: rawText.replace(match[0], '').trim(),
                 chips: match[1].split('|').map(s => s.trim())
             };
+        }
+        // A response cut off mid-generation (MAX_TOKENS) can leave a dangling,
+        // unclosed [CHIPS] marker — strip it rather than showing it as raw text.
+        const dangling = rawText.indexOf('[CHIPS]');
+        if (dangling !== -1) {
+            return { reply: rawText.slice(0, dangling).trim(), chips: [] };
         }
         return { reply: rawText, chips: [] };
     }
@@ -304,11 +354,15 @@ document.addEventListener('DOMContentLoaded', () => {
             history.push({ role: 'user',  text });
             history.push({ role: 'model', text: reply });
 
-            // Check context exhaustion: too many turns, or model signalled MAX_TOKENS
+            // finishReason === 'MAX_TOKENS' only means *this one reply* got cut off —
+            // it says nothing about the conversation as a whole, so it must not end
+            // the session. Only running out of turns does that.
             const tooManyTurns = history.length / 2 >= MAX_TURNS;
-            const tokenExhausted = finishReason === 'MAX_TOKENS';
+            if (finishReason === 'MAX_TOKENS') {
+                track('chat_response_truncated', { turnNumber: history.length / 2 });
+            }
 
-            if (tooManyTurns || tokenExhausted) {
+            if (tooManyTurns) {
                 showContextEnded();
                 return;
             }
