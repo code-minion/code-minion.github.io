@@ -85,8 +85,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>`;
     }).join('');
 
+    // Leadership
+    const leadershipHtml = (cvData.leadership || []).map(l => {
+        return `
+        <div class="entry">
+            <div class="entry-header">
+                <h3>${l.role}</h3>
+                ${l.status ? `<span class="entry-date">${l.status}</span>` : ''}
+            </div>
+            <div class="entry-subtitle">${l.org}</div>
+            <div class="entry-desc">${l.description}</div>
+        </div>`;
+    }).join('');
+
     // Education & Others
     const langHtml = (cvData.languages || []).map(l => typeof l === 'string' ? l : `${l.language} (${l.level})`).join(', ');
+    const certHtml = (cvData.certifications || []).map(c => {
+        return `<li><strong>${c.name}</strong>${c.year ? ` (${c.year})` : ''}</li>`;
+    }).join('');
     const patentHtml = (cvData.patents || []).map(p => {
         return `<li><strong>${p.title}</strong> (${p.status}, ${p.year}) - ${p.description}</li>`;
     }).join('');
@@ -125,6 +141,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         <h2>Experience</h2>
         ${expHtml}
 
+        ${leadershipHtml ? `<h2>Leadership</h2>
+        ${leadershipHtml}` : ''}
+
         <div class="page-break"></div>
 
         <h2>Projects</h2>
@@ -137,6 +156,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         <h2>Education</h2>
         ${eduHtml}
+
+        ${certHtml ? `<h2>Certifications</h2>
+        <ul style="color: var(--text-secondary); font-size: 14px;">
+            ${certHtml}
+        </ul>` : ''}
 
         ${patentHtml ? `<h2>Patents & Publications</h2>
         <ul style="color: var(--text-secondary); font-size: 14px;">

@@ -55,16 +55,31 @@ export function suggestionForRetryHint(retryHint) {
  * Sends a prompt with conversation history to the BFF.
  * @param {string} prompt — The user's latest message
  * @param {Array}  history — [{role:'user'|'model', text:string}, ...]
+ * @param {string} chatId
+ * @param {boolean} isFirstMessage — When true, sends immediately without waiting
+ *   on Turnstile (the BFF grants one free pass per chatId for a genuine first
+ *   message). Every message after that must carry a verified token.
  * @returns {Promise<{reply: string, finishReason: string}>}
  */
-export async function sendMessage(prompt, history = [], chatId = null) {
+export async function sendMessage(prompt, history = [], chatId = null, isFirstMessage = false) {
     if (!prompt?.trim()) throw new ChatError('Prompt cannot be empty', 'input');
 
     let turnstileToken = null;
 
-    // Only fetch Turnstile if we don't have a valid session token yet
-    if (!cachedSessionToken) {
-        turnstileToken = await getTurnstileToken();
+    // Only fetch Turnstile if we don't have a valid session token yet. The very
+    // first message of a conversation skips this entirely — the BFF lets it
+    // through on a one-time free pass so the visitor isn't kept waiting before
+    // their first reply. A background prefetch (started when the chat opened)
+    // is usually already warm by the time message #2 needs a real token.
+    if (!cachedSessionToken && !isFirstMessage) {
+        try {
+            turnstileToken = await getTurnstileToken();
+        } catch (turnstileErr) {
+            throw new ChatError(
+                "I couldn't verify your session in time. Please try again in a moment.",
+                'wait'
+            );
+        }
     }
 
     let res;

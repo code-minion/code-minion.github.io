@@ -55,16 +55,19 @@ const MASCOT_MARKUP = `
 // happy/error/wave are one-shot reactions that auto-revert to idle; loading persists until switched away.
 const AUTO_REVERT_MS = { happy: 1600, error: 1400, wave: 2000 };
 
-// Mounts the mascot markup into `root` and returns a setState(state) function.
+// Mounts the mascot markup into `root` and returns a setState(state, options) function.
+// Pass { persistent: true } for states that must NOT auto-revert to idle (e.g. an
+// unrecoverable error) — otherwise one-shot states (happy/error/wave) revert per
+// AUTO_REVERT_MS as normal.
 export function mountMascot(root) {
     root.innerHTML = MASCOT_MARKUP;
     root.dataset.state = 'idle';
     let revertTimer = null;
 
-    return function setMascotState(state) {
+    return function setMascotState(state, options = {}) {
         clearTimeout(revertTimer);
         root.dataset.state = state;
-        const revertMs = AUTO_REVERT_MS[state];
+        const revertMs = options.persistent ? null : AUTO_REVERT_MS[state];
         if (revertMs) {
             revertTimer = setTimeout(() => { root.dataset.state = 'idle'; }, revertMs);
         }

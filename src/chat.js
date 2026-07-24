@@ -1,6 +1,7 @@
 import { sendMessage, MAX_TURNS, suggestionForRetryHint } from './llm-client.js';
 import { track } from './analytics.js';
 import { mountMascot } from './mascot.js';
+import { prefetchTurnstileToken } from './turnstile.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatToggle   = document.getElementById('chat-toggle');
@@ -13,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMascot   = document.getElementById('chat-mascot');
 
     const setMascotState = chatMascot ? mountMascot(chatMascot) : () => {};
-    let hasWaved = false;
 
     // Conversation history for the BFF — array of {role, text}
     // role is 'user' or 'model' (Gemini convention)
@@ -21,6 +21,43 @@ document.addEventListener('DOMContentLoaded', () => {
     let contextExhausted = false;
     let currentChipsContainer = null;
     const chatId = crypto.randomUUID();
+
+    // Turnstile gating: message #1 always sends immediately (see llm-client's
+    // isFirstMessage), but message #2 onward needs a real verified token. We
+    // start warming one up in the background as soon as the chat opens, and
+    // gate the input only if the user gets there before it's ready.
+    let turnstileReady = false;
+    let sendInFlight = false;
+
+    function beginTurnstilePrefetch() {
+        prefetchTurnstileToken()
+            .then(() => {
+                turnstileReady = true;
+                applyTurnstileGate();
+            })
+            .catch(() => {
+                // A real attempt (and its own retries) happens when message #2
+                // is actually sent — nothing to do here but leave it not-ready.
+            });
+    }
+
+    // Enables/disables the input based on whether a message-2+ send would need
+    // a Turnstile token that isn't ready yet. No-op while a send is already in
+    // flight (that has its own disable/enable) or the session has ended.
+    function applyTurnstileGate(options = {}) {
+        if (contextExhausted || sendInFlight) return;
+        const needsVerification = history.length > 0 && !turnstileReady;
+        if (needsVerification) {
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+            chatInput.placeholder = 'Verifying your session… one moment';
+        } else {
+            chatInput.disabled = false;
+            sendBtn.disabled = false;
+            chatInput.placeholder = 'Type a message...';
+            if (options.focus) chatInput.focus();
+        }
+    }
     const SELF_AWARENESS_CONTEXT = [
         'Context for CODEMINION_AI behavior:',
         '- You are CODEMINION_AI, the AI assistant embedded in code-minion.github.io.',
@@ -69,10 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!contextExhausted) {
             chatInput.focus();
         }
-        if (!hasWaved) {
-            hasWaved = true;
-            setMascotState('wave');
-        }
+        setMascotState('wave');
+        beginTurnstilePrefetch();
+        applyTurnstileGate();
         track('chat_opened', { source });
     }
 
@@ -309,8 +345,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---- Send ----
     async function handleSend() {
-        if (contextExhausted) return;
-        
+        const isFirstMessage = history.length === 0;
+        if (contextExhausted || (!isFirstMessage && !turnstileReady)) return;
+
         const text = chatInput.value.trim();
         if (!text) return;
 
@@ -326,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         addMessage(text, true);
         chatInput.value = '';
+        sendInFlight = true;
         chatInput.disabled = true;
         sendBtn.disabled = true;
 
@@ -339,8 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const historyWithContext = getHistoryWithSessionContext();
-            const { reply: rawReply, finishReason } = await sendMessage(text, historyWithContext, chatId);
-            
+            const { reply: rawReply, finishReason } = await sendMessage(text, historyWithContext, chatId, isFirstMessage);
+
             const { reply, chips } = parseChips(rawReply);
 
             typingDiv.remove();
@@ -369,7 +407,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             typingDiv.remove();
-            setMascotState('error');
+            // retryHint 'later' means a real backend/config problem, not something
+            // the visitor can fix by retrying — treat that as unrecoverable and
+            // leave the mascot showing error instead of reverting to idle.
+            const isUnrecoverable = e.retryHint === 'later';
+            setMascotState('error', { persistent: isUnrecoverable });
             // Show the backend's user-facing message as-is (it's already written to be
             // shown to a visitor); fall back to a generic notice for unexpected errors
             // instead of leaking raw exception text like "BFF returned 500".
@@ -382,11 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
             addMessage(`${baseMessage}${suggestion}`, false);
             track('chat_error_shown', { retryHint: e.retryHint || 'none' });
         } finally {
-            if (!contextExhausted) {
-                chatInput.disabled = false;
-                sendBtn.disabled = false;
-                chatInput.focus();
-            }
+            sendInFlight = false;
+            applyTurnstileGate({ focus: true });
         }
     }
 
