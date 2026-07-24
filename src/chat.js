@@ -1,5 +1,6 @@
 import { sendMessage, MAX_TURNS, suggestionForRetryHint } from './llm-client.js';
 import { track } from './analytics.js';
+import { mountMascot } from './mascot.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatToggle   = document.getElementById('chat-toggle');
@@ -9,6 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn      = document.getElementById('chat-send');
     const chatHistory  = document.getElementById('chat-history');
     const speechBubble = document.getElementById('speech-bubble');
+    const chatMascot   = document.getElementById('chat-mascot');
+
+    const setMascotState = chatMascot ? mountMascot(chatMascot) : () => {};
+    let hasWaved = false;
 
     // Conversation history for the BFF — array of {role, text}
     // role is 'user' or 'model' (Gemini convention)
@@ -63,6 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!contextExhausted) {
             chatInput.focus();
+        }
+        if (!hasWaved) {
+            hasWaved = true;
+            setMascotState('wave');
         }
         track('chat_opened', { source });
     }
@@ -276,6 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chatHistory.appendChild(typingDiv);
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
+        setMascotState('loading');
+
         try {
             const historyWithContext = getHistoryWithSessionContext();
             const { reply: rawReply, finishReason } = await sendMessage(text, historyWithContext, chatId);
@@ -284,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             typingDiv.remove();
             addMessage(reply, false);
+            setMascotState('happy');
             if (chips.length > 0) {
                 renderChips(chips);
             }
@@ -303,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             typingDiv.remove();
+            setMascotState('error');
             // Show the backend's user-facing message as-is (it's already written to be
             // shown to a visitor); fall back to a generic notice for unexpected errors
             // instead of leaking raw exception text like "BFF returned 500".

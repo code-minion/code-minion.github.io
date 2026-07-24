@@ -1,0 +1,121 @@
+/* 2D mascot avatar (design_handoff_mascot_2d). States: idle | loading | happy | error | wave.
+   Keyframe translate amplitudes are scaled down from the 260px design demo to this
+   62px avatar (~23.8%); durations/easing/sequencing match the handoff exactly. */
+
+.chat-avatar.mascot-avatar {
+    width: 62px;
+    height: 62px;
+    /* Negative top margin keeps the flex row's height contribution close to the
+       original 38px avatar footprint, so the header bar doesn't grow taller
+       even though the avatar itself renders larger. */
+    margin-top: -12px;
+    border: none;
+    box-shadow: none;
+}
+
+.mascot-avatar {
+    position: relative;
+    background: #F4EFE7;
+    overflow: visible;
+}
+
+.mascot-avatar .mascot-ring,
+.mascot-avatar .mascot-body {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.mascot-avatar .mascot-body {
+    inset: -5%;
+    width: 110%;
+    height: 110%;
+    overflow: visible;
+}
+
+.mascot-avatar .mascot-ring {
+    opacity: 0;
+    transform-origin: 50% 50%;
+    transition: opacity 0.2s ease;
+}
+.mascot-avatar[data-state="loading"] .mascot-ring {
+    opacity: 1;
+    animation: mascotRingSpin 1s linear infinite;
+}
+
+.mascot-avatar .mascot-arm-group {
+    transform-origin: 158px 118px;
+}
+.mascot-avatar[data-state="wave"] .mascot-arm-group {
+    animation: mascotArmWave 0.6s ease-in-out 3;
+}
+
+.mascot-avatar[data-state="idle"] .mascot-body,
+.mascot-avatar[data-state="wave"] .mascot-body {
+    animation: mascotBob 3.2s ease-in-out infinite;
+}
+.mascot-avatar[data-state="loading"] .mascot-body {
+    animation: mascotPulse 1.1s ease-in-out infinite;
+}
+.mascot-avatar[data-state="happy"] .mascot-body {
+    animation: mascotHappy 1.4s ease-out 1;
+}
+.mascot-avatar[data-state="error"] .mascot-body {
+    animation: mascotShake 0.6s ease-in-out 1;
+}
+
+.mascot-avatar .mascot-eyes-loading {
+    animation: mascotPulse 0.9s ease-in-out infinite;
+}
+.mascot-avatar .mascot-sparkle {
+    animation: mascotSparklePop 1.1s ease-out 1;
+}
+.mascot-avatar .mascot-sparkle-2 {
+    animation: mascotSparklePop 1.1s ease-out 0.15s 1 backwards;
+}
+
+.mascot-avatar [data-face] { display: none; }
+.mascot-avatar[data-state="idle"] [data-face="neutral"],
+.mascot-avatar[data-state="wave"] [data-face="neutral"] { display: block; }
+.mascot-avatar[data-state="loading"] [data-face="loading"] { display: block; }
+.mascot-avatar[data-state="happy"] [data-face="happy"] { display: block; }
+.mascot-avatar[data-state="error"] [data-face="error"] { display: block; }
+
+@keyframes mascotBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2.4px); }
+}
+@keyframes mascotHappy {
+    0% { transform: translateY(0) scale(1,1); }
+    28% { transform: translateY(-6.2px) scale(1.06,0.94); }
+    50% { transform: translateY(0) scale(0.95,1.07); }
+    72% { transform: translateY(-1.9px) scale(1.02,0.98); }
+    100% { transform: translateY(0) scale(1,1); }
+}
+@keyframes mascotShake {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    20% { transform: translateX(-1.7px) rotate(-4deg); }
+    40% { transform: translateX(1.7px) rotate(4deg); }
+    60% { transform: translateX(-1.2px) rotate(-2.5deg); }
+    80% { transform: translateX(1.2px) rotate(2.5deg); }
+}
+@keyframes mascotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.93); }
+}
+@keyframes mascotArmWave {
+    0%, 100% { transform: rotate(-8deg); }
+    25% { transform: rotate(-38deg); }
+    50% { transform: rotate(-6deg); }
+    75% { transform: rotate(-30deg); }
+}
+@keyframes mascotRingSpin {
+    to { transform: rotate(360deg); }
+}
+@keyframes mascotSparklePop {
+    0% { opacity: 0; transform: scale(0) translateY(0); }
+    40% { opacity: 1; transform: scale(1) translateY(-0.95px); }
+    100% { opacity: 0; transform: scale(0.5) translateY(-3.8px); }
+}
