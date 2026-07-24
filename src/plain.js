@@ -144,8 +144,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${leadershipHtml ? `<h2>Leadership</h2>
         ${leadershipHtml}` : ''}
 
-        <div class="page-break"></div>
-
         <h2>Projects</h2>
         ${projHtml}
 

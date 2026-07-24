@@ -183,11 +183,6 @@ li {
     font-weight: 500;
 }
 
-.page-break {
-    margin: 40px 0;
-    border-top: 1px dashed var(--border-color);
-}
-
 /* Print Styles */
 @media print {
     body {
@@ -203,12 +198,47 @@ li {
     .print-actions, .no-print {
         display: none !important;
     }
-    .page-break {
-        margin: 0;
-        border: none;
-        page-break-before: always;
-        break-before: page;
+    /* Print runs denser than screen — tighter spacing means fewer blocks
+       are pushed as a whole to the next page just to avoid a mid-block
+       split, so there's less wasted trailing space per page. */
+    h2 {
+        margin: 20px 0 10px;
     }
+    .entry {
+        margin-bottom: 16px;
+    }
+    .summary {
+        margin-bottom: 20px;
+    }
+
+    /* Break-avoidance: keep every atomic unit whole rather than split
+       across a page boundary. A too-tall block is pushed to start the
+       next page instead of being cut mid-way. */
+    h1, h2, h3 {
+        break-after: avoid;
+        break-inside: avoid;
+    }
+    .header-contact,
+    .summary,
+    .entry,
+    .skill-item,
+    .tags,
+    li {
+        break-inside: avoid;
+    }
+    /* A heading must never be the last line on a page, separated from
+       the content it introduces. */
+    h2 {
+        break-after: avoid-page;
+    }
+    /* Orphan/widow control for any freestanding paragraph text (e.g. the
+       summary) that's allowed to split across pages when it's too long
+       to keep whole. */
+    p {
+        orphans: 3;
+        widows: 3;
+    }
+
     @page {
         margin: 2cm;
     }
