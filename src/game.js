@@ -1,20 +1,29 @@
 /**
- * game.js — hidden incremental game built around the Kit Chan 3D rig.
- * Discovered via the Konami code. Fully client-side (localStorage), except
- * an optional high-score ping to Discord after 15+ minutes of active play.
+ * game.js — hidden RPG-ish bug-squashing game built around the Kit Chan
+ * rig. Discovered via the Konami code. Fully client-side (localStorage),
+ * except an optional high-score ping to Discord after 15+ minutes of
+ * active play.
  *
- * Currency: "Commits". Click to earn; spend on upgrades that unlock the
- * rig's walk/sit/guard poses as flavor + passive income + burst multiplier.
+ * Click a bug to send Kit Chan to squash it (walk -> guard -> idle).
+ * Deploy robots to squash bugs automatically. Currency: "Commits".
  */
 import * as THREE from 'three';
 import { buildKitChanCharacter } from './kit-chan-character.js';
+import { buildBug, buildRobot } from './game-critters.js';
 import { track } from './analytics.js';
 
-const STORAGE_KEY = 'kitchan-idle-game-v1';
+const STORAGE_KEY = 'kitchan-bugsquash-v2';
 const HIGHSCORE_ENDPOINT = 'https://llm-bff-psi.vercel.app/api/game-highscore';
 const PLAYTIME_THRESHOLD_SEC = 15 * 60;
 const CRUNCH_DURATION_MS = 8000;
 const CRUNCH_COOLDOWN_MS = 30000;
+
+const FLOOR_RADIUS = 1.6;
+const MAX_BUGS = 7;
+const BUG_SPAWN_INTERVAL_MS = [2500, 5500]; // [min, max] random
+const ARRIVE_RADIUS = 0.16;
+const WALK_SPEED = 0.9; // units/sec
+const ATTACK_TICK_MS = 500;
 
 const RANKS = [
     { at: 0, title: 'Intern' },
@@ -30,11 +39,11 @@ function defaultState() {
     return {
         commits: 0,
         totalEarned: 0,
-        clickLevel: 0,
-        duckLevel: 0,
-        standingDeskLevel: 0,
+        totalSquashed: 0,
+        clickLevel: 0,     // "Sharper Reflexes" — player attack power
+        duckLevel: 0,      // "Rubber Duck" — small player damage/reward bonus
         hasCoffeeBreak: false,
-        hasPairBot: false,
+        robotLevel: 0,     // number of deployed robots
         hasCrunchMode: false,
         crunchActiveUntil: 0,
         crunchCooldownUntil: 0,
@@ -52,48 +61,50 @@ function loadState() {
         return defaultState();
     }
 }
-
 function saveState(state) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-        // localStorage unavailable (private mode, quota) — game still works
-        // for this session, it just won't persist.
-    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
 }
 
 function costFor(baseCost, level) {
     return Math.ceil(baseCost * Math.pow(1.15, level));
 }
-
 function currentRank(totalEarned) {
     let rank = RANKS[0].title;
-    for (const r of RANKS) {
-        if (totalEarned >= r.at) rank = r.title;
-    }
+    for (const r of RANKS) if (totalEarned >= r.at) rank = r.title;
     return rank;
 }
-
-function clickPowerFor(state) {
-    return 1 + state.clickLevel * 1 + state.duckLevel * 0.5;
+function playerDamage(state) {
+    return 1 + state.clickLevel * 1;
 }
-
-function passiveRateFor(state) {
-    return (state.hasCoffeeBreak ? 1 : 0) + state.standingDeskLevel * 1;
+function playerRewardBonus(state) {
+    return state.duckLevel * 0.5;
 }
-
-function globalMultiplierFor(state, now) {
-    let mult = state.hasPairBot ? 1.5 : 1;
-    if (state.crunchActiveUntil > now) mult *= 3;
-    return mult;
+function robotDamage() {
+    return 1;
+}
+function globalMultiplier(state, now) {
+    return state.crunchActiveUntil > now ? 3 : 1;
+}
+function passiveRate(state) {
+    return state.hasCoffeeBreak ? 1 : 0;
+}
+function formatNum(n) {
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+    return Math.floor(n).toString();
+}
+function randRange([a, b]) { return a + Math.random() * (b - a); }
+function randomFloorPoint() {
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.sqrt(Math.random()) * FLOOR_RADIUS * 0.85;
+    return new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r);
 }
 
 const UPGRADES = [
     {
-        id: 'keyboard',
-        name: 'Better Keyboard',
-        desc: '+1 Commit per click',
-        baseCost: 10,
+        id: 'reflexes',
+        name: 'Sharper Reflexes',
+        desc: '+1 squash damage',
         level: (s) => s.clickLevel,
         cost: (s) => costFor(10, s.clickLevel),
         visible: () => true,
@@ -102,8 +113,7 @@ const UPGRADES = [
     {
         id: 'duck',
         name: 'Rubber Duck',
-        desc: '+0.5 Commits per click',
-        baseCost: 25,
+        desc: '+0.5 bonus Commits per squash',
         level: (s) => s.duckLevel,
         cost: (s) => costFor(25, s.duckLevel),
         visible: () => true,
@@ -112,8 +122,7 @@ const UPGRADES = [
     {
         id: 'coffee',
         name: 'Coffee Break',
-        desc: 'Unlocks passive income — +1 Commit/sec, even away from keyboard',
-        baseCost: 50,
+        desc: 'Unlocks passive income — +1 Commit/sec, even mid-nap',
         oneTime: true,
         owned: (s) => s.hasCoffeeBreak,
         cost: () => 50,
@@ -121,31 +130,18 @@ const UPGRADES = [
         buy: (s) => { s.hasCoffeeBreak = true; },
     },
     {
-        id: 'standingDesk',
-        name: 'Standing Desk',
-        desc: '+1 Commit/sec passive income',
-        baseCost: 100,
-        level: (s) => s.standingDeskLevel,
-        cost: (s) => costFor(100, s.standingDeskLevel),
-        visible: (s) => s.hasCoffeeBreak,
-        buy: (s) => { s.standingDeskLevel += 1; },
-    },
-    {
-        id: 'pairBot',
-        name: 'Pair Programming Bot',
-        desc: 'Unlocks the walk cycle — +50% to ALL income, permanently',
-        baseCost: 300,
-        oneTime: true,
-        owned: (s) => s.hasPairBot,
-        cost: () => 300,
+        id: 'robot',
+        name: 'Deploy a Robot',
+        desc: 'A new helper bot auto-squashes bugs for you',
+        level: (s) => s.robotLevel,
+        cost: (s) => costFor(150, s.robotLevel),
         visible: () => true,
-        buy: (s) => { s.hasPairBot = true; },
+        buy: (s) => { s.robotLevel += 1; },
     },
     {
         id: 'crunch',
         name: 'Crunch Mode',
-        desc: 'Unlocks an activatable guard stance — 3x income for 8s (30s cooldown)',
-        baseCost: 750,
+        desc: 'Unlocks an activatable power move — 3x income for 8s (30s cooldown)',
         oneTime: true,
         owned: (s) => s.hasCrunchMode,
         cost: () => 750,
@@ -154,28 +150,22 @@ const UPGRADES = [
     },
 ];
 
-function formatNum(n) {
-    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
-    if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
-    return Math.floor(n).toString();
-}
-
 const PANEL_HTML = `
 <div id="kc-game-backdrop">
   <div id="kc-game-panel">
     <button id="kc-game-close" aria-label="Close">&times;</button>
     <div class="kc-header">
-      <div class="kc-title">CODE MINION: IDLE</div>
+      <div class="kc-title">BUG SQUASH</div>
       <div class="kc-rank"></div>
     </div>
     <div id="kc-stage-wrap">
       <canvas id="kc-stage-canvas"></canvas>
+      <div id="kc-stage-toast"></div>
     </div>
     <div class="kc-commits">
       <span id="kc-commits-value">0</span> Commits
       <div class="kc-rate"></div>
     </div>
-    <button id="kc-click-btn">COMMIT CODE</button>
     <button id="kc-crunch-btn" style="display:none;">CRUNCH MODE</button>
     <div class="kc-upgrades" id="kc-upgrades"></div>
     <div id="kc-highscore-invite" style="display:none;">
@@ -184,7 +174,6 @@ const PANEL_HTML = `
       <button id="kc-highscore-submit">SEND HIGH SCORE</button>
       <button id="kc-highscore-dismiss">NOT NOW</button>
     </div>
-    <div id="kc-toast"></div>
   </div>
 </div>
 `;
@@ -203,13 +192,13 @@ function launchGame() {
     const backdrop = document.getElementById('kc-game-backdrop');
     const closeBtn = document.getElementById('kc-game-close');
     const canvas = document.getElementById('kc-stage-canvas');
+    const stageWrap = document.getElementById('kc-stage-wrap');
+    const stageToast = document.getElementById('kc-stage-toast');
     const commitsValueEl = document.getElementById('kc-commits-value');
     const rateEl = document.querySelector('.kc-rate');
     const rankEl = document.querySelector('.kc-rank');
-    const clickBtn = document.getElementById('kc-click-btn');
     const crunchBtn = document.getElementById('kc-crunch-btn');
     const upgradesEl = document.getElementById('kc-upgrades');
-    const toastEl = document.getElementById('kc-toast');
     const highScoreInvite = document.getElementById('kc-highscore-invite');
     const nameInput = document.getElementById('kc-name-input');
     const highScoreSubmitBtn = document.getElementById('kc-highscore-submit');
@@ -217,62 +206,234 @@ function launchGame() {
 
     let state = loadState();
 
-    // ---- Three.js stage ----
+    // ---- Three.js scene: wide, zoomed-out, follows the character ----
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 20);
-    camera.position.set(0, 0.55, 1.7);
-    camera.lookAt(0, 0.45, 0);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 30);
+    const CAMERA_OFFSET = new THREE.Vector3(0, 2.6, 3.2);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    const ambient = new THREE.AmbientLight(0xffffff, 1.8);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    dirLight.position.set(1.2, 2, 1.5);
+    const ambient = new THREE.AmbientLight(0xffffff, 1.9);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.4);
+    dirLight.position.set(2, 3.5, 2);
     scene.add(ambient, dirLight);
 
     const ground = new THREE.Mesh(
-        new THREE.CircleGeometry(0.7, 32),
-        new THREE.MeshStandardMaterial({ color: 0x0f1a26, roughness: 0.9 })
+        new THREE.CircleGeometry(FLOOR_RADIUS, 40),
+        new THREE.MeshStandardMaterial({ color: 0x101c28, roughness: 0.9 })
     );
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
+
+    // Ring to visually mark the play area, matches the site's accent color.
+    const ringGeo = new THREE.RingGeometry(FLOOR_RADIUS - 0.02, FLOOR_RADIUS, 48);
+    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x00d2ff, transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.001;
+    scene.add(ring);
+
+    // A couple of simple desk/plant props for flavor, matching the site's room aesthetic.
+    function addProp(x, z, geo, color, y = 0) {
+        const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.8 }));
+        mesh.position.set(x, y, z);
+        scene.add(mesh);
+        return mesh;
+    }
+    addProp(-1.25, -0.9, new THREE.BoxGeometry(0.3, 0.22, 0.18), 0x6b5640, 0.11);
+    addProp(1.2, 1.0, new THREE.ConeGeometry(0.12, 0.3, 8), 0x3a6b4a, 0.15);
+    addProp(1.2, 1.0, new THREE.CylinderGeometry(0.06, 0.07, 0.08, 8), 0x8a6f55, 0.04);
 
     const character = buildKitChanCharacter({ hoodieColor: 0x7C93A6 });
     scene.add(character.root);
 
     function resizeStage() {
-        const wrap = document.getElementById('kc-stage-wrap');
-        const size = wrap.clientWidth;
-        renderer.setSize(size, size);
-        camera.aspect = 1;
+        const w = stageWrap.clientWidth;
+        const h = stageWrap.clientHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
         camera.updateProjectionMatrix();
     }
     resizeStage();
     window.addEventListener('resize', resizeStage);
 
-    // ---- Ambient flavor pose cycling (walk/sit) when nothing else is active ----
+    function updateCamera() {
+        const target = character.root.position.clone().add(CAMERA_OFFSET);
+        camera.position.lerp(target, 0.08);
+        const lookAt = character.root.position.clone().add(new THREE.Vector3(0, 0.35, 0));
+        camera.lookAt(lookAt);
+    }
+    // Snap camera to start position immediately so the first frame isn't a swoop from origin.
+    camera.position.copy(character.root.position.clone().add(CAMERA_OFFSET));
+    camera.lookAt(character.root.position.clone().add(new THREE.Vector3(0, 0.35, 0)));
+
+    // ---- Toast / talking sync ----
+    let toastTimer = null;
+    function showToast(msg, ms = 1800) {
+        stageToast.textContent = msg;
+        stageToast.classList.add('kc-stage-toast-show');
+        character.setTalking(true);
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            stageToast.classList.remove('kc-stage-toast-show');
+            character.setTalking(false);
+        }, ms);
+    }
+
+    // ---- Bugs ----
+    /** @type {Array<{entity: ReturnType<typeof buildBug>, pos: THREE.Vector3, claimedBy: 'player'|'robot'|null, dead: boolean}>} */
+    const bugs = [];
+    function spawnBug() {
+        if (bugs.length >= MAX_BUGS || !launched) return;
+        const tough = Math.random() < 0.2;
+        const entity = buildBug({ hp: tough ? 2 + Math.floor(Math.random() * 2) : 1 });
+        const pos = randomFloorPoint();
+        entity.root.position.copy(pos);
+        scene.add(entity.root);
+        bugs.push({ entity, pos, claimedBy: null, dead: false });
+        scheduleNextSpawn();
+    }
+    let spawnTimer = null;
+    function scheduleNextSpawn() {
+        clearTimeout(spawnTimer);
+        spawnTimer = setTimeout(spawnBug, randRange(BUG_SPAWN_INTERVAL_MS));
+    }
+
+    function removeBug(bug) {
+        bug.dead = true;
+        scene.remove(bug.entity.root);
+        const idx = bugs.indexOf(bug);
+        if (idx !== -1) bugs.splice(idx, 1);
+    }
+
+    function awardCommits(amount, now) {
+        const total = amount * globalMultiplier(state, now);
+        state.commits += total;
+        state.totalEarned += total;
+        return total;
+    }
+
+    // ---- Player targeting/combat ----
+    let playerTarget = null; // bug object
+    let playerAttackTimer = 0;
+    let squashStreak = 0;
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        const meshes = bugs.map(b => b.entity.root).flatMap(g => g.children.length ? g.children : [g]);
+        const hits = raycaster.intersectObjects(meshes, true);
+        if (hits.length === 0) return;
+        let hitRoot = hits[0].object;
+        while (hitRoot.parent && !bugs.some(b => b.entity.root === hitRoot)) hitRoot = hitRoot.parent;
+        const bug = bugs.find(b => b.entity.root === hitRoot);
+        if (bug && bug.claimedBy !== 'robot') {
+            if (playerTarget && playerTarget !== bug) playerTarget.claimedBy = null;
+            playerTarget = bug;
+            bug.claimedBy = 'player';
+        }
+    });
+
+    function updatePlayer(dtMs, now) {
+        if (!playerTarget || playerTarget.dead) {
+            playerTarget = null;
+            if (character.getPose() !== 'guard') character.setPose('idle');
+            return;
+        }
+        const toTarget = playerTarget.pos.clone().sub(character.root.position);
+        toTarget.y = 0;
+        const dist = toTarget.length();
+
+        if (dist > ARRIVE_RADIUS) {
+            character.setPose('walk');
+            toTarget.normalize();
+            character.root.position.addScaledVector(toTarget, WALK_SPEED * (dtMs / 1000));
+            character.root.rotation.y = Math.atan2(toTarget.x, toTarget.z);
+            playerAttackTimer = 0;
+        } else {
+            character.setPose('guard', { persistent: true });
+            character.root.rotation.y = Math.atan2(toTarget.x, toTarget.z);
+            playerAttackTimer += dtMs;
+            if (playerAttackTimer >= ATTACK_TICK_MS) {
+                playerAttackTimer = 0;
+                playerTarget.entity.hp -= playerDamage(state);
+                if (playerTarget.entity.hp <= 0) {
+                    const earned = awardCommits(1 + playerRewardBonus(state), now);
+                    state.totalSquashed += 1;
+                    squashStreak += 1;
+                    showToast(`+${earned.toFixed(1)} Commits!`);
+                    if (squashStreak % 10 === 0) {
+                        character.setPose('wave');
+                        showToast(`${squashStreak} squash streak! 🎉`, 2200);
+                    }
+                    removeBug(playerTarget);
+                    playerTarget = null;
+                    character.setPose('idle');
+                }
+            }
+        }
+    }
+
+    // ---- Robots ----
+    /** @type {Array<{entity: ReturnType<typeof buildRobot>, target: any, attackTimer: number}>} */
+    const robots = [];
+    function syncRobotCount() {
+        while (robots.length < state.robotLevel) {
+            const entity = buildRobot();
+            entity.root.position.copy(randomFloorPoint());
+            scene.add(entity.root);
+            robots.push({ entity, target: null, attackTimer: 0 });
+        }
+    }
+
+    function updateRobot(robot, dtMs, now) {
+        if (!robot.target || robot.target.dead) {
+            robot.target = bugs.find(b => !b.claimedBy) || null;
+            if (robot.target) robot.target.claimedBy = 'robot';
+            robot.attackTimer = 0;
+            if (!robot.target) return;
+        }
+        const toTarget = robot.target.pos.clone().sub(robot.entity.root.position);
+        toTarget.y = 0;
+        const dist = toTarget.length();
+        if (dist > ARRIVE_RADIUS) {
+            toTarget.normalize();
+            robot.entity.root.position.addScaledVector(toTarget, WALK_SPEED * 0.8 * (dtMs / 1000));
+            robot.entity.root.rotation.y = Math.atan2(toTarget.x, toTarget.z);
+        } else {
+            robot.attackTimer += dtMs;
+            if (robot.attackTimer >= ATTACK_TICK_MS * 1.3) {
+                robot.attackTimer = 0;
+                robot.entity.playZap();
+                robot.target.entity.hp -= robotDamage() * globalMultiplier(state, now);
+                if (robot.target.entity.hp <= 0) {
+                    awardCommits(0.5, now);
+                    state.totalSquashed += 1;
+                    removeBug(robot.target);
+                    robot.target = null;
+                }
+            }
+        }
+    }
+
+    // ---- Ambient idle flavor (coffee-break sit) when nothing else is happening ----
     let ambientTimer = null;
     function scheduleAmbient() {
         clearTimeout(ambientTimer);
-        const activePose = character.getPose();
-        if (activePose === 'wave' || activePose === 'guard') {
-            ambientTimer = setTimeout(scheduleAmbient, 500);
-            return;
-        }
-        const canWalk = state.hasPairBot;
-        const canSit = state.hasCoffeeBreak;
-        if (!canWalk && !canSit) {
-            character.setPose('idle');
-            ambientTimer = setTimeout(scheduleAmbient, 2000);
-            return;
-        }
-        const pick = canWalk && canSit ? (Math.random() < 0.5 ? 'walk' : 'sit') : (canWalk ? 'walk' : 'sit');
-        character.setPose(pick, { persistent: true });
         ambientTimer = setTimeout(() => {
-            character.setPose('idle');
-            ambientTimer = setTimeout(scheduleAmbient, 6000 + Math.random() * 4000);
-        }, 4000 + Math.random() * 2000);
+            const busy = playerTarget || character.getPose() === 'guard' || character.getPose() === 'wave';
+            if (!busy && state.hasCoffeeBreak && Math.random() < 0.5) {
+                character.setPose('sit', { persistent: true });
+                setTimeout(() => {
+                    if (character.getPose() === 'sit') character.setPose('idle');
+                }, 3500);
+            }
+            scheduleAmbient();
+        }, 8000 + Math.random() * 6000);
     }
     scheduleAmbient();
 
@@ -283,26 +444,17 @@ function launchGame() {
     function tick() {
         try {
             const now = performance.now();
-            // Capped generously (not to a fraction of a second) — "Coffee Break"
-            // is explicitly meant to earn Commits while the tab is backgrounded,
-            // and rAF only fires again once it's foregrounded, so the elapsed
-            // gap has to be honored, not truncated away. The cap only guards
-            // against absurd single-frame jumps (system clock changes, a
-            // suspended laptop for days), not normal tab-switching.
-            const dt = Math.min((now - lastTick) / 1000, 6 * 60 * 60);
+            const dtMs = Math.min(now - lastTick, 6 * 60 * 60 * 1000);
+            const dt = dtMs / 1000;
             lastTick = now;
 
-            const mult = globalMultiplierFor(state, now);
-            const passiveRate = passiveRateFor(state);
-            if (passiveRate > 0) {
-                const earned = passiveRate * mult * dt;
+            const rate = passiveRate(state);
+            if (rate > 0) {
+                const earned = rate * globalMultiplier(state, now) * dt;
                 state.commits += earned;
                 state.totalEarned += earned;
             }
-
-            if (state.crunchActiveUntil && state.crunchActiveUntil <= now) {
-                state.crunchActiveUntil = 0;
-            }
+            if (state.crunchActiveUntil && state.crunchActiveUntil <= now) state.crunchActiveUntil = 0;
 
             if (!document.hidden) {
                 state.playSeconds += dt;
@@ -311,15 +463,19 @@ function launchGame() {
                 }
             }
 
+            syncRobotCount();
+            const t = now / 1000;
+            bugs.forEach(b => b.entity.update(t));
+            robots.forEach(r => { r.entity.update(t); updateRobot(r, dtMs, now); });
+            updatePlayer(dtMs, now);
+
             character.update();
+            updateCamera();
             renderer.render(scene, camera);
             renderUI(now);
 
             saveCounter += dt;
-            if (saveCounter > 5) {
-                saveCounter = 0;
-                saveState(state);
-            }
+            if (saveCounter > 5) { saveCounter = 0; saveState(state); }
         } catch (err) {
             console.error('[kc-game] tick error (continuing):', err);
         }
@@ -329,9 +485,9 @@ function launchGame() {
     function renderUI(now) {
         commitsValueEl.textContent = formatNum(state.commits);
         rankEl.textContent = currentRank(state.totalEarned);
-        const passiveRate = passiveRateFor(state);
-        const mult = globalMultiplierFor(state, now);
-        rateEl.textContent = passiveRate > 0 ? `+${(passiveRate * mult).toFixed(1)}/sec` : '';
+        const rate = passiveRate(state);
+        const mult = globalMultiplier(state, now);
+        rateEl.textContent = rate > 0 ? `+${(rate * mult).toFixed(1)}/sec` : '';
 
         if (state.hasCrunchMode) {
             crunchBtn.style.display = 'block';
@@ -344,7 +500,6 @@ function launchGame() {
                     ? `COOLDOWN ${Math.ceil((state.crunchCooldownUntil - now) / 1000)}s`
                     : 'CRUNCH MODE';
         }
-
         renderUpgrades();
     }
 
@@ -387,51 +542,27 @@ function launchGame() {
         });
     }
 
-    let toastTimer = null;
-    function showToast(msg) {
-        toastEl.textContent = msg;
-        toastEl.classList.add('kc-toast-show');
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toastEl.classList.remove('kc-toast-show'), 1800);
-    }
-
-    clickBtn.addEventListener('click', () => {
-        const now = performance.now();
-        const mult = globalMultiplierFor(state, now);
-        const earned = clickPowerFor(state) * mult;
-        state.commits += earned;
-        state.totalEarned += earned;
-        character.setPose('wave');
-    });
-
     crunchBtn.addEventListener('click', () => {
         const now = performance.now();
         if (state.crunchCooldownUntil > now) return;
         state.crunchActiveUntil = now + CRUNCH_DURATION_MS;
         state.crunchCooldownUntil = now + CRUNCH_DURATION_MS + CRUNCH_COOLDOWN_MS;
-        character.setPose('guard', { persistent: true });
-        setTimeout(() => {
-            if (character.getPose() === 'guard') character.setPose('idle');
-        }, CRUNCH_DURATION_MS);
-        showToast('Crunch mode engaged — 3x income!');
+        showToast('Crunch mode engaged — 3x income!', 2200);
     });
 
     closeBtn.addEventListener('click', () => {
         saveState(state);
         cancelAnimationFrame(rafId);
         clearTimeout(ambientTimer);
+        clearTimeout(spawnTimer);
         window.removeEventListener('resize', resizeStage);
         renderer.dispose();
         container.remove();
         launched = false;
     });
-    backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) closeBtn.click();
-    });
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeBtn.click(); });
 
-    highScoreDismissBtn.addEventListener('click', () => {
-        highScoreInvite.style.display = 'none';
-    });
+    highScoreDismissBtn.addEventListener('click', () => { highScoreInvite.style.display = 'none'; });
     highScoreSubmitBtn.addEventListener('click', async () => {
         highScoreSubmitBtn.disabled = true;
         highScoreSubmitBtn.textContent = 'SENDING…';
@@ -456,6 +587,11 @@ function launchGame() {
         }
     });
 
+    // Kick things off.
+    syncRobotCount();
+    scheduleNextSpawn();
+    spawnBug();
+    setTimeout(() => spawnBug(), 400);
     tick();
 }
 
@@ -466,10 +602,7 @@ function initKonamiListener() {
         const key = e.key.toLowerCase();
         if (key === sequence[idx]) {
             idx++;
-            if (idx === sequence.length) {
-                idx = 0;
-                launchGame();
-            }
+            if (idx === sequence.length) { idx = 0; launchGame(); }
         } else {
             idx = key === sequence[0] ? 1 : 0;
         }

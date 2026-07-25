@@ -21,8 +21,8 @@
 #kc-game-panel {
     position: relative;
     width: 100%;
-    max-width: 380px;
-    max-height: 90vh;
+    max-width: 560px;
+    max-height: 92vh;
     overflow-y: auto;
     background: var(--glass-bg, rgba(5, 12, 20, 0.95));
     border: 1px solid var(--accent-blue, #00d2ff);
@@ -43,6 +43,7 @@
     font-size: 1.6rem;
     line-height: 1;
     cursor: pointer;
+    z-index: 2;
 }
 #kc-game-close:hover { color: #fff; }
 
@@ -64,17 +65,40 @@
 }
 
 #kc-stage-wrap {
-    width: 180px;
-    height: 180px;
+    position: relative;
+    width: 100%;
+    height: 320px;
     margin: 0 auto 10px;
-    border-radius: 50%;
+    border-radius: 12px;
     overflow: hidden;
-    background: radial-gradient(circle, rgba(0, 210, 255, 0.08), transparent 70%);
+    background: radial-gradient(circle, rgba(0, 210, 255, 0.1), rgba(0,0,0,0.2) 75%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: crosshair;
 }
 #kc-stage-canvas {
     width: 100%;
     height: 100%;
     display: block;
+}
+
+#kc-stage-toast {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 0.78rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, top 0.2s ease;
+    white-space: nowrap;
+}
+#kc-stage-toast.kc-stage-toast-show {
+    opacity: 1;
+    top: 14px;
 }
 
 .kc-commits {
@@ -89,27 +113,10 @@
     min-height: 1em;
 }
 
-#kc-click-btn {
-    display: block;
-    width: 100%;
-    margin: 12px 0 8px;
-    padding: 14px;
-    background: var(--accent-blue, #00d2ff);
-    color: #001824;
-    border: none;
-    border-radius: 10px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: transform 0.1s ease;
-}
-#kc-click-btn:active { transform: scale(0.96); }
-
 #kc-crunch-btn {
     display: block;
     width: 100%;
-    margin-bottom: 12px;
+    margin: 10px 0 12px;
     padding: 10px;
     background: transparent;
     border: 1px solid var(--accent-pink, #ff2d7e);
@@ -126,8 +133,8 @@
 }
 
 .kc-upgrades {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 8px;
     margin-top: 8px;
 }
@@ -216,28 +223,11 @@
     color: rgba(255, 255, 255, 0.6);
 }
 
-#kc-toast {
-    position: absolute;
-    bottom: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.85);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease, bottom 0.2s ease;
-    white-space: nowrap;
-}
-#kc-toast.kc-toast-show {
-    opacity: 1;
-    bottom: -12px;
-}
-
-@media (max-width: 480px) {
+@media (max-width: 600px) {
     #kc-game-panel {
         max-width: 100%;
+    }
+    #kc-stage-wrap {
+        height: 260px;
     }
 }

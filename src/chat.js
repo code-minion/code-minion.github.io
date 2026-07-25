@@ -58,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (options.focus) chatInput.focus();
         }
     }
+    const GAME_HINT_CHIP = '🎮 Wanna play a game?';
+    const GAME_HINT_REPLY = "Heh, thought you'd never ask. There's a hidden game somewhere on this site — try the classic cheat code on your keyboard: ↑ ↑ ↓ ↓ ← → ← → B A. Good luck, minion. 🐛";
     const SELF_AWARENESS_CONTEXT = [
         'Context for CODEMINION_AI behavior:',
         '- You are CODEMINION_AI, the AI assistant embedded in code-minion.github.io.',
@@ -265,6 +267,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerText = label;
             btn.onclick = () => {
                 track('chat_chip_click', { label });
+                if (label === GAME_HINT_CHIP) {
+                    // Handled entirely client-side — no need to burn an LLM call
+                    // (or leak the exact key sequence via a system prompt) just to
+                    // deliver a fixed hint.
+                    removeChips();
+                    addMessage(label, true);
+                    addMessage(GAME_HINT_REPLY, false);
+                    return;
+                }
                 if (history.length === 0) track('chat_first_message', { type: 'chip' });
                 chatInput.value = label;
                 handleSend();
@@ -306,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Render initial chips
-    renderChips(["Send Bradley a message", "What's his tech stack?", "Tell me about his projects"]);
+    renderChips(["Send Bradley a message", "What's his tech stack?", "Tell me about his projects", GAME_HINT_CHIP]);
 
     // ---- Message rendering ----
     function addMessage(text, isUser = false) {
