@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="./src/3d.css">
     <link rel="stylesheet" href="./src/chat.css">
     <link rel="stylesheet" href="./src/mascot.css">
-    <link rel="stylesheet" href="./src/game.css">
     <link rel="preload" href="./KIT_CHAN_OPT.glb" as="fetch" crossorigin="anonymous">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -112,6 +111,10 @@
     <!-- Chat UI Widget -->
     <button id="chat-toggle">💬</button>
 
+    <!-- Mobile-only entry point to the hidden game: the Konami code needs a
+         keyboard, so touch-only visitors have no way to trigger it otherwise. -->
+    <a id="kc-mobile-play" href="./survivor.html" aria-label="Play the hidden game" title="Play the hidden game">🎮</a>
+
     <!-- UI Overlay for Inspections -->
     <div id="quick-links" class="quick-links">
         <a href="./plain.html" class="neon-btn quick-cv-link" onclick="window.umami && window.umami.track('cv_link_click', { type: 'simple' })">
@@ -142,7 +145,7 @@
 
     <script type="module" src="./src/3d.js"></script>
     <script type="module" src="./src/chat.js"></script>
-    <script type="module" src="./src/game.js"></script>
+    <script type="module" src="./src/konami-redirect.js"></script>
 </body>
 
 </html>

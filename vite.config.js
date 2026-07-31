@@ -17,6 +17,7 @@ export default defineConfig({
         plain: resolve(__dirname, 'plain.html'),
         plain2: resolve(__dirname, 'plain2.html'),
         plainSig: resolve(__dirname, 'plain-sig.html'),
+        survivor: resolve(__dirname, 'survivor.html'),
       },
     },
   },

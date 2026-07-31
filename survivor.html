@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug Squash: Survival | Code Minion</title>
+    <link rel="stylesheet" href="./src/game.css">
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="cbd830e1-1401-4152-8533-9325794fdfaf"></script>
+</head>
+
+<body>
+    <div id="kc-game-root">
+        <a id="kc-exit-link" href="./index.html" aria-label="Back to portfolio" title="Back to portfolio">&times;</a>
+
+        <div id="kc-lobby" class="kc-screen">
+            <div class="kc-header">
+                <div class="kc-title">BUG SQUASH: SURVIVAL</div>
+                <div class="kc-subtitle">Survive the sprint. Level up. Don't get merged.</div>
+            </div>
+            <div class="kc-lobby-stats">
+                <div class="kc-lobby-commits"><span id="kc-lobby-commits">0</span> Commits</div>
+                <div class="kc-lobby-rank" id="kc-lobby-rank"></div>
+                <div class="kc-lobby-best">Best: Lv.<span id="kc-lobby-best-level">0</span> · <span id="kc-lobby-best-time">0:00</span></div>
+            </div>
+            <button id="kc-start-run">START RUN</button>
+            <div class="kc-upgrades" id="kc-meta-upgrades"></div>
+        </div>
+
+        <div id="kc-run" class="kc-screen" style="display:none;">
+            <div class="kc-hud">
+                <div class="kc-hud-top">
+                    <div class="kc-hp-bar"><div class="kc-hp-fill" id="kc-hp-fill"></div><span id="kc-hp-text"></span></div>
+                    <div class="kc-timer" id="kc-timer">0:00</div>
+                    <div class="kc-level">Lv.<span id="kc-level-value">1</span></div>
+                </div>
+                <div class="kc-xp-bar"><div class="kc-xp-fill" id="kc-xp-fill"></div></div>
+                <div class="kc-weapon-tray" id="kc-weapon-tray"></div>
+            </div>
+            <div id="kc-stage-wrap">
+                <canvas id="kc-stage-canvas"></canvas>
+                <div id="kc-damage-flash"></div>
+                <div id="kc-stage-toast"></div>
+                <div id="kc-move-hint">WASD / Arrows / Touch &amp; drag to move</div>
+            </div>
+        </div>
+
+        <div id="kc-levelup" class="kc-overlay" style="display:none;">
+            <div class="kc-levelup-title">LEVEL UP!</div>
+            <div class="kc-levelup-choices" id="kc-levelup-choices"></div>
+        </div>
+
+        <div id="kc-summary" class="kc-overlay" style="display:none;">
+            <div class="kc-summary-title" id="kc-summary-title"></div>
+            <div class="kc-summary-stats" id="kc-summary-stats"></div>
+            <div id="kc-highscore-invite">
+                <p>Send this run's score to Bradley?</p>
+                <input id="kc-name-input" type="text" placeholder="Name (optional)" maxlength="40">
+                <div class="kc-highscore-actions">
+                    <button id="kc-highscore-submit">SEND</button>
+                    <button id="kc-summary-continue">RETURN TO LOBBY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/game.js"></script>
+</body>
+
+</html>

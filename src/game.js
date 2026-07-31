@@ -1,29 +1,68 @@
 /**
- * game.js — hidden RPG-ish bug-squashing game built around the Kit Chan
- * rig. Discovered via the Konami code. Fully client-side (localStorage),
- * except an optional high-score ping to Discord after 15+ minutes of
- * active play.
+ * game.js — hidden wave-survival roguelite built around the Kit Chan rig.
+ * Lives on its own dedicated page (survivor.html), reached only via the
+ * Konami-code redirect on the main site. Fully client-side (localStorage),
+ * except an optional high-score ping to Discord after a run ends.
  *
- * Click a bug to send Kit Chan to squash it (walk -> guard -> idle).
- * Deploy robots to squash bugs automatically. Currency: "Commits".
+ * Move with WASD/arrows. Weapons auto-fire at nearby bugs. Leveling up
+ * offers a choice of new weapons/upgrades. Dying (or surviving 5 minutes)
+ * returns you to the lobby with "Commits" to spend on permanent upgrades.
  */
 import * as THREE from 'three';
 import { buildKitChanCharacter } from './kit-chan-character.js';
-import { buildBug, buildRobot } from './game-critters.js';
+import {
+    ENEMY_BUILDERS, buildDrone, buildOrbitBlade, buildBulletMesh, buildPelletMesh,
+    buildWaspBoltMesh, buildNovaRing, buildXpOrb, buildWallObstacle, buildHoleObstacle,
+} from './game-critters.js';
+import { ENEMY_TYPES, VICTORY_TIME_SEC, MAX_ENEMIES, difficultyMul, createSpawnDirector } from './game-enemies.js';
+import { WEAPON_DEFS, STARTING_WEAPON } from './game-weapons.js';
+import { PASSIVE_DEFS, defaultPassives, buildLevelUpChoices } from './game-items.js';
+import { generateObstacles, blocksProjectile, resolveCollision, steerAroundObstacles } from './game-obstacles.js';
 import { track } from './analytics.js';
 
-const STORAGE_KEY = 'kitchan-bugsquash-v2';
+const STORAGE_KEY = 'kitchan-survivor-v1';
 const HIGHSCORE_ENDPOINT = 'https://llm-bff-psi.vercel.app/api/game-highscore';
-const PLAYTIME_THRESHOLD_SEC = 15 * 60;
-const CRUNCH_DURATION_MS = 8000;
-const CRUNCH_COOLDOWN_MS = 30000;
 
-const FLOOR_RADIUS = 1.6;
-const MAX_BUGS = 7;
-const BUG_SPAWN_INTERVAL_MS = [2500, 5500]; // [min, max] random
-const ARRIVE_RADIUS = 0.16;
-const WALK_SPEED = 0.9; // units/sec
-const ATTACK_TICK_MS = 500;
+// Lightweight request obfuscation, NOT real security — this is public JS, so
+// the scheme is readable by anyone who opens dev tools. It only exists to
+// filter out the laziest scripted spam (a plain JSON replay won't match the
+// server's decoder); it is never a substitute for the server's own
+// validation, which stays exactly as strict either way. Keep OBFUSCATE_SHIFT
+// and OBFUSCATE_MARKER in sync with repos/llm-bff/api/game-highscore.js.
+const OBFUSCATE_SHIFT = 41;
+const OBFUSCATE_MARKER = '~KC~';
+
+/** JSON -> UTF-8 bytes -> byte-shift -> random noise prefix -> base64. */
+function encodeHighscorePayload(obj) {
+    const bytes = new TextEncoder().encode(JSON.stringify(obj));
+    const shifted = bytes.map(b => (b + OBFUSCATE_SHIFT) % 256);
+    const marker = new TextEncoder().encode(OBFUSCATE_MARKER);
+    const noise = crypto.getRandomValues(new Uint8Array(2 + Math.floor(Math.random() * 6)));
+    const combined = new Uint8Array(noise.length + marker.length + shifted.length);
+    combined.set(noise, 0);
+    combined.set(marker, noise.length);
+    combined.set(shifted, noise.length + marker.length);
+    let binary = '';
+    combined.forEach(b => { binary += String.fromCharCode(b); });
+    return btoa(binary);
+}
+
+// World is scaled ~3.25x versus the original modal-panel version (arena
+// radius 2.0 -> 6.5) so there's real room to roam on a fullscreen page.
+// Projectile/effect MESH + HITBOX sizes are scaled further (~5x, see
+// game-weapons.js / game-critters.js) since "small object readability"
+// matters more than strict distance-scale consistency.
+const FLOOR_RADIUS = 6.5;
+const ARENA_CLAMP_RADIUS = FLOOR_RADIUS * 0.94;
+const SPAWN_RADIUS = FLOOR_RADIUS * 1.05;
+const PLAYER_BASE_SPEED = 3.2;
+const PLAYER_RADIUS = 0.1; // player's own model/hitbox is intentionally NOT rescaled
+const BASE_MAX_HP = 100;
+const INVULN_MS = 350;
+const XP_PICKUP_ATTRACT_SPEED = 8.5;
+const PROJECTILE_HIT_RADIUS = 0.25;
+const DRONE_ORBIT_RADIUS = 0.6;
+const ORBIT_BLADE_HIT_PAD = 0.25;
 
 const RANKS = [
     { at: 0, title: 'Intern' },
@@ -35,214 +74,149 @@ const RANKS = [
     { at: 25000, title: 'Code Minion Overlord' },
 ];
 
-function defaultState() {
+const META_UPGRADES = [
+    { id: 'vitality', name: 'Extra Coffee', icon: '☕', desc: '+12 max HP per level', baseCost: 20 },
+    { id: 'swiftness', name: 'Standing Desk', icon: '🦿', desc: '+3% move speed per level', baseCost: 25 },
+    { id: 'might', name: 'Mechanical Keyboard', icon: '⌨️', desc: '+3% weapon damage per level', baseCost: 30 },
+    { id: 'revive', name: 'Backup Save', icon: '💾', desc: '+1 free revive per run (max 2)', baseCost: 90, maxLevel: 2 },
+    { id: 'fortune', name: 'Expense Report', icon: '🧾', desc: '+8% Commits earned per run', baseCost: 35 },
+];
+
+function defaultMeta() {
     return {
         commits: 0,
         totalEarned: 0,
-        totalSquashed: 0,
-        clickLevel: 0,     // "Sharper Reflexes" — player attack power
-        duckLevel: 0,      // "Rubber Duck" — small player damage/reward bonus
-        hasCoffeeBreak: false,
-        robotLevel: 0,     // number of deployed robots
-        hasCrunchMode: false,
-        crunchActiveUntil: 0,
-        crunchCooldownUntil: 0,
-        playSeconds: 0,
-        highScoreSubmitted: false,
+        totalRuns: 0,
+        bestLevel: 0,
+        bestTimeSec: 0,
+        upgrades: { vitality: 0, swiftness: 0, might: 0, revive: 0, fortune: 0 },
     };
 }
-
-function loadState() {
+function loadMeta() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return defaultState();
-        return Object.assign(defaultState(), JSON.parse(raw));
+        if (!raw) return defaultMeta();
+        const parsed = JSON.parse(raw);
+        return Object.assign(defaultMeta(), parsed, { upgrades: Object.assign(defaultMeta().upgrades, parsed.upgrades) });
     } catch {
-        return defaultState();
+        return defaultMeta();
     }
 }
-function saveState(state) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+function saveMeta(meta) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meta)); } catch { /* ignore */ }
 }
 
-function costFor(baseCost, level) {
-    return Math.ceil(baseCost * Math.pow(1.15, level));
-}
+function costFor(baseCost, level) { return Math.ceil(baseCost * Math.pow(1.15, level)); }
 function currentRank(totalEarned) {
     let rank = RANKS[0].title;
     for (const r of RANKS) if (totalEarned >= r.at) rank = r.title;
     return rank;
-}
-function playerDamage(state) {
-    return 1 + state.clickLevel * 1;
-}
-function playerRewardBonus(state) {
-    return state.duckLevel * 0.5;
-}
-function robotDamage() {
-    return 1;
-}
-function globalMultiplier(state, now) {
-    return state.crunchActiveUntil > now ? 3 : 1;
-}
-function passiveRate(state) {
-    return state.hasCoffeeBreak ? 1 : 0;
 }
 function formatNum(n) {
     if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
     if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
     return Math.floor(n).toString();
 }
-function randRange([a, b]) { return a + Math.random() * (b - a); }
-function randomFloorPoint() {
-    const angle = Math.random() * Math.PI * 2;
-    const r = Math.sqrt(Math.random()) * FLOOR_RADIUS * 0.85;
-    return new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+function xpForLevel(level) { return Math.round(6 + level * 4); }
+
+// Reused instead of allocating fresh Vector3s on every shot fired.
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+const FORWARD_Z = new THREE.Vector3(0, 0, 1);
+const LOOK_AT_OFFSET = new THREE.Vector3(0, 0.35, 0);
+
+/** Frees GPU-side geometry/material buffers — scene.remove() alone only unlinks the object. */
+function disposeObject3D(obj) {
+    obj.traverse((node) => {
+        node.geometry?.dispose();
+        if (Array.isArray(node.material)) node.material.forEach(m => m.dispose());
+        else node.material?.dispose();
+    });
 }
 
-const UPGRADES = [
-    {
-        id: 'reflexes',
-        name: 'Sharper Reflexes',
-        desc: '+1 squash damage',
-        level: (s) => s.clickLevel,
-        cost: (s) => costFor(10, s.clickLevel),
-        visible: () => true,
-        buy: (s) => { s.clickLevel += 1; },
-    },
-    {
-        id: 'duck',
-        name: 'Rubber Duck',
-        desc: '+0.5 bonus Commits per squash',
-        level: (s) => s.duckLevel,
-        cost: (s) => costFor(25, s.duckLevel),
-        visible: () => true,
-        buy: (s) => { s.duckLevel += 1; },
-    },
-    {
-        id: 'coffee',
-        name: 'Coffee Break',
-        desc: 'Unlocks passive income — +1 Commit/sec, even mid-nap',
-        oneTime: true,
-        owned: (s) => s.hasCoffeeBreak,
-        cost: () => 50,
-        visible: () => true,
-        buy: (s) => { s.hasCoffeeBreak = true; },
-    },
-    {
-        id: 'robot',
-        name: 'Deploy a Robot',
-        desc: 'A new helper bot auto-squashes bugs for you',
-        level: (s) => s.robotLevel,
-        cost: (s) => costFor(150, s.robotLevel),
-        visible: () => true,
-        buy: (s) => { s.robotLevel += 1; },
-    },
-    {
-        id: 'crunch',
-        name: 'Crunch Mode',
-        desc: 'Unlocks an activatable power move — 3x income for 8s (30s cooldown)',
-        oneTime: true,
-        owned: (s) => s.hasCrunchMode,
-        cost: () => 750,
-        visible: () => true,
-        buy: (s) => { s.hasCrunchMode = true; },
-    },
-];
-
-const PANEL_HTML = `
-<div id="kc-game-backdrop">
-  <div id="kc-game-panel">
-    <button id="kc-game-close" aria-label="Close">&times;</button>
-    <div class="kc-header">
-      <div class="kc-title">BUG SQUASH</div>
-      <div class="kc-rank"></div>
-    </div>
-    <div id="kc-stage-wrap">
-      <canvas id="kc-stage-canvas"></canvas>
-      <div id="kc-stage-toast"></div>
-    </div>
-    <div class="kc-commits">
-      <span id="kc-commits-value">0</span> Commits
-      <div class="kc-rate"></div>
-    </div>
-    <button id="kc-crunch-btn" style="display:none;">CRUNCH MODE</button>
-    <div class="kc-upgrades" id="kc-upgrades"></div>
-    <div id="kc-highscore-invite" style="display:none;">
-      <p>You've been at this for 15+ minutes. Want to send your high score to Bradley?</p>
-      <input id="kc-name-input" type="text" placeholder="Name (optional)" maxlength="40">
-      <button id="kc-highscore-submit">SEND HIGH SCORE</button>
-      <button id="kc-highscore-dismiss">NOT NOW</button>
-    </div>
-  </div>
-</div>
-`;
-
-let launched = false;
-
-function launchGame() {
-    if (launched) return;
-    launched = true;
-    track?.('hidden_game_discovered');
-
-    const container = document.createElement('div');
-    container.innerHTML = PANEL_HTML;
-    document.body.appendChild(container);
-
-    const backdrop = document.getElementById('kc-game-backdrop');
-    const closeBtn = document.getElementById('kc-game-close');
+function initGame() {
+    const lobbyEl = document.getElementById('kc-lobby');
+    const runEl = document.getElementById('kc-run');
     const canvas = document.getElementById('kc-stage-canvas');
     const stageWrap = document.getElementById('kc-stage-wrap');
     const stageToast = document.getElementById('kc-stage-toast');
-    const commitsValueEl = document.getElementById('kc-commits-value');
-    const rateEl = document.querySelector('.kc-rate');
-    const rankEl = document.querySelector('.kc-rank');
-    const crunchBtn = document.getElementById('kc-crunch-btn');
-    const upgradesEl = document.getElementById('kc-upgrades');
-    const highScoreInvite = document.getElementById('kc-highscore-invite');
+    const damageFlash = document.getElementById('kc-damage-flash');
+    const moveHint = document.getElementById('kc-move-hint');
+
+    const lobbyCommitsEl = document.getElementById('kc-lobby-commits');
+    const lobbyRankEl = document.getElementById('kc-lobby-rank');
+    const lobbyBestLevelEl = document.getElementById('kc-lobby-best-level');
+    const lobbyBestTimeEl = document.getElementById('kc-lobby-best-time');
+    const startRunBtn = document.getElementById('kc-start-run');
+    const metaUpgradesEl = document.getElementById('kc-meta-upgrades');
+
+    const hpFillEl = document.getElementById('kc-hp-fill');
+    const hpTextEl = document.getElementById('kc-hp-text');
+    const xpFillEl = document.getElementById('kc-xp-fill');
+    const timerEl = document.getElementById('kc-timer');
+    const levelValueEl = document.getElementById('kc-level-value');
+    const weaponTrayEl = document.getElementById('kc-weapon-tray');
+
+    const levelUpEl = document.getElementById('kc-levelup');
+    const levelUpChoicesEl = document.getElementById('kc-levelup-choices');
+
+    const summaryEl = document.getElementById('kc-summary');
+    const summaryTitleEl = document.getElementById('kc-summary-title');
+    const summaryStatsEl = document.getElementById('kc-summary-stats');
+    const summaryContinueBtn = document.getElementById('kc-summary-continue');
     const nameInput = document.getElementById('kc-name-input');
     const highScoreSubmitBtn = document.getElementById('kc-highscore-submit');
-    const highScoreDismissBtn = document.getElementById('kc-highscore-dismiss');
 
-    let state = loadState();
+    let meta = loadMeta();
 
-    // ---- Three.js scene: wide, zoomed-out, follows the character ----
+    // ---- Three.js scene ----
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 30);
-    const CAMERA_OFFSET = new THREE.Vector3(0, 2.6, 3.2);
+    function removeFromScene(obj) {
+        scene.remove(obj);
+        disposeObject3D(obj);
+    }
+    const camera = new THREE.PerspectiveCamera(46, 1, 0.1, 60);
+    const CAMERA_OFFSET = new THREE.Vector3(0, 9, 11);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     const ambient = new THREE.AmbientLight(0xffffff, 1.9);
     const dirLight = new THREE.DirectionalLight(0xffffff, 2.4);
-    dirLight.position.set(2, 3.5, 2);
+    dirLight.position.set(4, 7, 4);
     scene.add(ambient, dirLight);
 
     const ground = new THREE.Mesh(
-        new THREE.CircleGeometry(FLOOR_RADIUS, 40),
+        new THREE.CircleGeometry(FLOOR_RADIUS, 56),
         new THREE.MeshStandardMaterial({ color: 0x101c28, roughness: 0.9 })
     );
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
 
-    // Ring to visually mark the play area, matches the site's accent color.
-    const ringGeo = new THREE.RingGeometry(FLOOR_RADIUS - 0.02, FLOOR_RADIUS, 48);
-    const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x00d2ff, transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
+    // Ring marks the actual movement boundary (ARENA_CLAMP_RADIUS), not the
+    // slightly larger cosmetic floor — otherwise the player hits an invisible
+    // stop short of the visible edge.
+    const ring = new THREE.Mesh(
+        new THREE.RingGeometry(ARENA_CLAMP_RADIUS - 0.06, ARENA_CLAMP_RADIUS, 64),
+        new THREE.MeshBasicMaterial({ color: 0x00d2ff, transparent: true, opacity: 0.25, side: THREE.DoubleSide })
+    );
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.001;
     scene.add(ring);
 
-    // A couple of simple desk/plant props for flavor, matching the site's room aesthetic.
     function addProp(x, z, geo, color, y = 0) {
         const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.8 }));
         mesh.position.set(x, y, z);
         scene.add(mesh);
         return mesh;
     }
-    addProp(-1.25, -0.9, new THREE.BoxGeometry(0.3, 0.22, 0.18), 0x6b5640, 0.11);
-    addProp(1.2, 1.0, new THREE.ConeGeometry(0.12, 0.3, 8), 0x3a6b4a, 0.15);
-    addProp(1.2, 1.0, new THREE.CylinderGeometry(0.06, 0.07, 0.08, 8), 0x8a6f55, 0.04);
+    addProp(-4.06, -2.93, new THREE.BoxGeometry(0.9, 0.66, 0.54), 0x6b5640, 0.33);
+    addProp(3.9, 3.25, new THREE.ConeGeometry(0.36, 0.9, 8), 0x3a6b4a, 0.45);
+    addProp(3.9, 3.25, new THREE.CylinderGeometry(0.18, 0.21, 0.24, 8), 0x8a6f55, 0.12);
 
     const character = buildKitChanCharacter({ hoodieColor: 0x7C93A6 });
     scene.add(character.root);
@@ -250,6 +224,7 @@ function launchGame() {
     function resizeStage() {
         const w = stageWrap.clientWidth;
         const h = stageWrap.clientHeight;
+        if (!w || !h) return;
         renderer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
@@ -257,312 +232,693 @@ function launchGame() {
     resizeStage();
     window.addEventListener('resize', resizeStage);
 
+    let shakeUntil = 0;
     function updateCamera() {
         const target = character.root.position.clone().add(CAMERA_OFFSET);
-        camera.position.lerp(target, 0.08);
-        const lookAt = character.root.position.clone().add(new THREE.Vector3(0, 0.35, 0));
+        camera.position.lerp(target, 0.09);
+        if (performance.now() < shakeUntil) {
+            camera.position.x += (Math.random() - 0.5) * 0.06;
+            camera.position.y += (Math.random() - 0.5) * 0.06;
+        }
+        const lookAt = character.root.position.clone().add(LOOK_AT_OFFSET);
         camera.lookAt(lookAt);
     }
-    // Snap camera to start position immediately so the first frame isn't a swoop from origin.
     camera.position.copy(character.root.position.clone().add(CAMERA_OFFSET));
-    camera.lookAt(character.root.position.clone().add(new THREE.Vector3(0, 0.35, 0)));
+    camera.lookAt(character.root.position.clone().add(LOOK_AT_OFFSET));
 
-    // ---- Toast / talking sync ----
     let toastTimer = null;
     function showToast(msg, ms = 1800) {
         stageToast.textContent = msg;
         stageToast.classList.add('kc-stage-toast-show');
-        character.setTalking(true);
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => {
-            stageToast.classList.remove('kc-stage-toast-show');
-            character.setTalking(false);
-        }, ms);
+        toastTimer = setTimeout(() => stageToast.classList.remove('kc-stage-toast-show'), ms);
     }
 
-    // ---- Bugs ----
-    /** @type {Array<{entity: ReturnType<typeof buildBug>, pos: THREE.Vector3, claimedBy: 'player'|'robot'|null, dead: boolean}>} */
-    const bugs = [];
-    function spawnBug() {
-        if (bugs.length >= MAX_BUGS || !launched) return;
-        const tough = Math.random() < 0.2;
-        const entity = buildBug({ hp: tough ? 2 + Math.floor(Math.random() * 2) : 1 });
-        const pos = randomFloorPoint();
-        entity.root.position.copy(pos);
-        scene.add(entity.root);
-        bugs.push({ entity, pos, claimedBy: null, dead: false });
-        scheduleNextSpawn();
-    }
-    let spawnTimer = null;
-    function scheduleNextSpawn() {
-        clearTimeout(spawnTimer);
-        spawnTimer = setTimeout(spawnBug, randRange(BUG_SPAWN_INTERVAL_MS));
+    // ---- Run state (reset each run) ----
+    let runState = null;
+    let spawnDirector = null;
+    const enemies = [];
+    const playerProjectiles = [];
+    const enemyProjectiles = [];
+    const xpOrbs = [];
+    const novaRings = [];
+    const obstacles = [];
+    const obstacleVisuals = [];
+    const weaponRuntime = { orbit: { blades: [], hitMap: new Map(), angle: 0 }, drone: { drones: [] } };
+    let pendingLevelUps = 0;
+
+    function mightMul() { return PASSIVE_DEFS.might.valueAtLevel(runState.passives.might || 0) * (1 + (meta.upgrades.might || 0) * 0.03); }
+    function cooldownMul() { return PASSIVE_DEFS.cooldown.valueAtLevel(runState.passives.cooldown || 0); }
+    function areaMul() { return PASSIVE_DEFS.area.valueAtLevel(runState.passives.area || 0); }
+    function speedMul() { return PASSIVE_DEFS.speed.valueAtLevel(runState.passives.speed || 0) * (1 + (meta.upgrades.swiftness || 0) * 0.03); }
+    function pickupRadius() { return 0.6 + PASSIVE_DEFS.magnet.valueAtLevel(runState.passives.magnet || 0); }
+    function computeMaxHp() { return BASE_MAX_HP + (meta.upgrades.vitality || 0) * 12 + (runState.passives.vitality || 0) * 20; }
+
+    function clearArena() {
+        enemies.forEach(e => removeFromScene(e.visual.root));
+        enemies.length = 0;
+        playerProjectiles.forEach(p => removeFromScene(p.mesh));
+        playerProjectiles.length = 0;
+        enemyProjectiles.forEach(p => removeFromScene(p.mesh));
+        enemyProjectiles.length = 0;
+        xpOrbs.forEach(o => removeFromScene(o.visual.root));
+        xpOrbs.length = 0;
+        novaRings.forEach(r => removeFromScene(r.mesh));
+        novaRings.length = 0;
+        weaponRuntime.orbit.blades.forEach(m => removeFromScene(m));
+        weaponRuntime.orbit.blades = [];
+        weaponRuntime.orbit.hitMap.clear();
+        weaponRuntime.drone.drones.forEach(d => removeFromScene(d.entity.root));
+        weaponRuntime.drone.drones = [];
+        obstacleVisuals.forEach(v => removeFromScene(v.root));
+        obstacleVisuals.length = 0;
+        obstacles.length = 0;
     }
 
-    function removeBug(bug) {
-        bug.dead = true;
-        scene.remove(bug.entity.root);
-        const idx = bugs.indexOf(bug);
-        if (idx !== -1) bugs.splice(idx, 1);
+    function setupObstacles() {
+        const placed = generateObstacles(ARENA_CLAMP_RADIUS, { wallCount: 7, holeCount: 4 });
+        placed.forEach(o => {
+            obstacles.push(o);
+            const visual = o.kind === 'wall' ? buildWallObstacle(o.radius) : buildHoleObstacle(o.radius);
+            visual.root.position.set(o.x, 0, o.z);
+            scene.add(visual.root);
+            obstacleVisuals.push(visual);
+        });
     }
 
-    function awardCommits(amount, now) {
-        const total = amount * globalMultiplier(state, now);
-        state.commits += total;
-        state.totalEarned += total;
-        return total;
+    // ---- Enemies ----
+    function spawnEnemyOfType(id, elapsedSec) {
+        if (enemies.length >= MAX_ENEMIES) return;
+        const def = ENEMY_TYPES[id];
+        const mul = difficultyMul(elapsedSec);
+        const visual = ENEMY_BUILDERS[def.builder]();
+        const angle = Math.random() * Math.PI * 2;
+        const pos = new THREE.Vector3(Math.cos(angle) * SPAWN_RADIUS, 0, Math.sin(angle) * SPAWN_RADIUS);
+        visual.root.position.copy(pos);
+        scene.add(visual.root);
+        enemies.push({
+            def, visual, pos,
+            hp: Math.ceil(def.baseHp * mul.hp), maxHp: Math.ceil(def.baseHp * mul.hp),
+            dmgMul: mul.dmg, lastContactMs: 0, lastRangedMs: 0, dead: false,
+        });
     }
 
-    // ---- Player targeting/combat ----
-    let playerTarget = null; // bug object
-    let playerAttackTimer = 0;
-    let squashStreak = 0;
+    function damageEnemy(e, amount, now) {
+        if (e.dead) return;
+        e.hp -= amount;
+        e.visual.playHit?.();
+        if (e.hp <= 0) killEnemy(e, now);
+    }
+    function killEnemy(e, now) {
+        e.dead = true;
+        removeFromScene(e.visual.root);
+        const idx = enemies.indexOf(e);
+        if (idx !== -1) enemies.splice(idx, 1);
+        runState.kills += 1;
+        spawnXpOrb(e.pos, e.def.xp);
+        if (e.def.isElite) showToast('Merge Conflict resolved! 🎉', 2200);
+    }
 
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    canvas.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
-        const meshes = bugs.map(b => b.entity.root).flatMap(g => g.children.length ? g.children : [g]);
-        const hits = raycaster.intersectObjects(meshes, true);
-        if (hits.length === 0) return;
-        let hitRoot = hits[0].object;
-        while (hitRoot.parent && !bugs.some(b => b.entity.root === hitRoot)) hitRoot = hitRoot.parent;
-        const bug = bugs.find(b => b.entity.root === hitRoot);
-        if (bug && bug.claimedBy !== 'robot') {
-            if (playerTarget && playerTarget !== bug) playerTarget.claimedBy = null;
-            playerTarget = bug;
-            bug.claimedBy = 'player';
+    function updateEnemy(e, dtMs, now) {
+        const toPlayer = character.root.position.clone().sub(e.pos);
+        toPlayer.y = 0;
+        const dist = toPlayer.length();
+        const def = e.def;
+        const contactRange = PLAYER_RADIUS + def.radius;
+
+        let dirX = 0, dirZ = 0, wantsMove = false;
+        if (def.ranged) {
+            const pref = def.ranged.preferredRange;
+            if (dist > pref + 0.08) {
+                dirX = toPlayer.x / (dist || 1); dirZ = toPlayer.z / (dist || 1);
+                wantsMove = true;
+            } else if (dist < pref - 0.2) {
+                dirX = -toPlayer.x / (dist || 1); dirZ = -toPlayer.z / (dist || 1);
+                wantsMove = true;
+            }
+            if (dist > contactRange && now - e.lastRangedMs >= def.ranged.cooldownMs && dist <= pref + 0.7) {
+                e.lastRangedMs = now;
+                spawnEnemyProjectile(e);
+            }
+        } else if (dist > contactRange + 0.03) {
+            dirX = toPlayer.x / (dist || 1); dirZ = toPlayer.z / (dist || 1);
+            wantsMove = true;
         }
-    });
 
-    function updatePlayer(dtMs, now) {
-        if (!playerTarget || playerTarget.dead) {
-            playerTarget = null;
-            if (character.getPose() !== 'guard') character.setPose('idle');
+        if (wantsMove) {
+            const steered = steerAroundObstacles(e.pos.x, e.pos.z, dirX, dirZ, obstacles, def.radius, { flying: def.isFlying, lookahead: 1.4 });
+            e.pos.x += steered.x * def.speed * (dtMs / 1000);
+            e.pos.z += steered.z * def.speed * (dtMs / 1000);
+            const resolved = resolveCollision(e.pos.x, e.pos.z, def.radius, obstacles, { flying: def.isFlying });
+            e.pos.x = resolved.x;
+            e.pos.z = resolved.z;
+        }
+
+        if (dist <= contactRange && now - e.lastContactMs >= def.contactTickMs) {
+            e.lastContactMs = now;
+            damagePlayer(def.contactDamage * e.dmgMul, now);
+        }
+
+        e.visual.root.position.copy(e.pos);
+        if (toPlayer.lengthSq() > 1e-6) e.visual.root.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
+        e.visual.update(now / 1000);
+    }
+
+    function spawnEnemyProjectile(e) {
+        const dir = character.root.position.clone().sub(e.pos);
+        dir.y = 0;
+        if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+        dir.normalize();
+        const mesh = buildWaspBoltMesh();
+        mesh.position.copy(e.pos).setY(0.3);
+        scene.add(mesh);
+        enemyProjectiles.push({
+            mesh, pos: e.pos.clone().setY(0.3),
+            vel: dir.multiplyScalar(e.def.ranged.projectileSpeed),
+            damage: e.def.ranged.damage * e.dmgMul, ttlMs: 2500, radius: e.def.ranged.radius,
+        });
+    }
+
+    function updateEnemyProjectiles(dt, now) {
+        for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+            const p = enemyProjectiles[i];
+            p.pos.addScaledVector(p.vel, dt);
+            p.mesh.position.copy(p.pos);
+            p.ttlMs -= dt * 1000;
+            let hit = false;
+            for (const o of obstacles) {
+                if (!blocksProjectile(o)) continue;
+                if (Math.hypot(p.pos.x - o.x, p.pos.z - o.z) <= o.radius + p.radius) { hit = true; break; }
+            }
+            const dist = p.pos.distanceTo(character.root.position);
+            if (!hit && dist <= p.radius + PLAYER_RADIUS) { damagePlayer(p.damage, now); hit = true; }
+            if (hit || p.ttlMs <= 0 || p.pos.length() > SPAWN_RADIUS * 1.3) {
+                removeFromScene(p.mesh);
+                enemyProjectiles.splice(i, 1);
+            }
+        }
+    }
+
+    // ---- XP orbs ----
+    function spawnXpOrb(pos, value) {
+        const visual = buildXpOrb();
+        visual.root.position.copy(pos).setY(0);
+        scene.add(visual.root);
+        xpOrbs.push({ visual, pos: pos.clone(), value });
+    }
+    function updateXpOrbs(dt, now) {
+        const radius = pickupRadius();
+        for (let i = xpOrbs.length - 1; i >= 0; i--) {
+            const o = xpOrbs[i];
+            const dist = o.pos.distanceTo(character.root.position);
+            if (dist <= radius) {
+                const dir = character.root.position.clone().sub(o.pos).setY(0);
+                if (dist > 0.05) dir.normalize().multiplyScalar(XP_PICKUP_ATTRACT_SPEED * dt);
+                o.pos.add(dir);
+            }
+            o.visual.root.position.copy(o.pos);
+            o.visual.update(now / 1000);
+            if (o.pos.distanceTo(character.root.position) <= 0.15) {
+                removeFromScene(o.visual.root);
+                xpOrbs.splice(i, 1);
+                addXp(o.value);
+            }
+        }
+    }
+
+    // ---- XP / leveling ----
+    function addXp(amount) {
+        runState.xp += amount;
+        while (runState.xp >= runState.xpToNext) {
+            runState.xp -= runState.xpToNext;
+            runState.level += 1;
+            runState.xpToNext = xpForLevel(runState.level);
+            pendingLevelUps += 1;
+        }
+        if (pendingLevelUps > 0 && !runState.paused) beginLevelUp();
+    }
+    function beginLevelUp() {
+        pendingLevelUps -= 1;
+        runState.paused = true;
+        character.setPose('wave');
+        const choices = buildLevelUpChoices(runState, 3);
+        levelUpChoicesEl.innerHTML = choices.map((c, i) => `
+            <button class="kc-choice" data-idx="${i}">
+                <div class="kc-choice-icon">${c.icon}</div>
+                <div class="kc-choice-name">${c.name}</div>
+                <div class="kc-choice-desc">${c.desc}</div>
+            </button>`).join('');
+        levelUpChoicesEl.querySelectorAll('.kc-choice').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const choice = choices[Number(btn.dataset.idx)];
+                choice.apply(runState);
+                if (runState.healOnNextApply) { runState.hp = computeMaxHp(); runState.healOnNextApply = false; }
+                runState.maxHp = computeMaxHp();
+                levelUpEl.style.display = 'none';
+                if (pendingLevelUps > 0) beginLevelUp();
+                else runState.paused = false;
+            });
+        });
+        levelUpEl.style.display = 'flex';
+    }
+
+    // ---- Player damage ----
+    function damagePlayer(amount, now) {
+        if (now < runState.invulnUntil || runState.hp <= 0) return;
+        const reduced = Math.max(1, amount - (runState.passives.armor || 0));
+        runState.hp -= reduced;
+        runState.invulnUntil = now + INVULN_MS;
+        shakeUntil = now + 150;
+        damageFlash.classList.add('kc-flash-show');
+        setTimeout(() => damageFlash.classList.remove('kc-flash-show'), 160);
+        if (runState.hp <= 0) {
+            runState.hp = 0;
+            if (runState.revivesLeft > 0) {
+                runState.revivesLeft -= 1;
+                runState.hp = runState.maxHp;
+                runState.invulnUntil = now + 1200;
+                showToast('Backup restored! 💾', 2000);
+            } else {
+                endRun('death', now);
+            }
+        }
+    }
+
+    // ---- Weapons: projectile helpers ----
+    function nearestEnemy(fromPos, maxRange) {
+        let best = null, bestD = Infinity;
+        for (const e of enemies) {
+            if (e.dead) continue;
+            const d = e.pos.distanceTo(fromPos);
+            if (d < bestD && (maxRange == null || d <= maxRange)) { bestD = d; best = e; }
+        }
+        return best;
+    }
+    function spawnPlayerProjectileDir(origin, dir, speed, damage, pierce, maxRange, mesh) {
+        mesh.position.copy(origin);
+        mesh.quaternion.setFromUnitVectors(FORWARD_Z, dir);
+        scene.add(mesh);
+        playerProjectiles.push({
+            mesh, pos: origin.clone(), vel: dir.clone().multiplyScalar(speed),
+            damage, pierceLeft: pierce, traveled: 0, maxRange, radius: PROJECTILE_HIT_RADIUS, hitSet: new Set(),
+        });
+    }
+    function updatePlayerProjectiles(dt, now) {
+        for (let i = playerProjectiles.length - 1; i >= 0; i--) {
+            const p = playerProjectiles[i];
+            const step = p.vel.clone().multiplyScalar(dt);
+            p.pos.add(step);
+            p.traveled += step.length();
+            p.mesh.position.copy(p.pos);
+            let consumed = false;
+            for (const o of obstacles) {
+                if (!blocksProjectile(o)) continue;
+                if (Math.hypot(p.pos.x - o.x, p.pos.z - o.z) <= o.radius + p.radius) { consumed = true; break; }
+            }
+            if (!consumed) {
+                for (const e of enemies) {
+                    if (e.dead || p.hitSet.has(e)) continue;
+                    if (e.pos.distanceTo(p.pos) <= e.def.radius + p.radius) {
+                        damageEnemy(e, p.damage, now);
+                        p.hitSet.add(e);
+                        if (p.pierceLeft > 0) p.pierceLeft -= 1;
+                        else { consumed = true; break; }
+                    }
+                }
+            }
+            if (consumed || p.traveled >= p.maxRange) {
+                removeFromScene(p.mesh);
+                playerProjectiles.splice(i, 1);
+            }
+        }
+    }
+
+    // ---- Weapon: bullet / shotgun / nova (cooldown-fired) ----
+    function fireBulletWeapon(w) {
+        const stats = WEAPON_DEFS.bullet.stats(w.level);
+        const target = nearestEnemy(character.root.position, stats.range);
+        if (!target) return;
+        const dir = target.pos.clone().sub(character.root.position).setY(0).normalize();
+        const dmg = stats.damage * mightMul();
+        for (let i = 0; i < stats.count; i++) {
+            const spread = (i - (stats.count - 1) / 2) * 0.18;
+            const d2 = dir.clone().applyAxisAngle(WORLD_UP, spread);
+            spawnPlayerProjectileDir(character.root.position.clone().setY(0.5), d2, stats.speed, dmg, stats.pierce, stats.range, buildBulletMesh());
+        }
+    }
+    function fireShotgunWeapon(w) {
+        const stats = WEAPON_DEFS.shotgun.stats(w.level);
+        const target = nearestEnemy(character.root.position, stats.range * 1.4);
+        const baseDir = target
+            ? target.pos.clone().sub(character.root.position).setY(0).normalize()
+            : new THREE.Vector3(Math.sin(character.root.rotation.y), 0, Math.cos(character.root.rotation.y));
+        const dmg = stats.damage * mightMul();
+        for (let i = 0; i < stats.pelletCount; i++) {
+            const t = stats.pelletCount === 1 ? 0 : (i / (stats.pelletCount - 1)) - 0.5;
+            const d = baseDir.clone().applyAxisAngle(WORLD_UP, t * stats.spreadRad);
+            spawnPlayerProjectileDir(character.root.position.clone().setY(0.45), d, stats.speed, dmg, 0, stats.range, buildPelletMesh());
+        }
+    }
+    function fireNovaWeapon(w, now) {
+        const stats = WEAPON_DEFS.nova.stats(w.level);
+        const radius = stats.radius * areaMul();
+        const dmg = stats.damage * mightMul();
+        for (const e of enemies) if (!e.dead && e.pos.distanceTo(character.root.position) <= radius) damageEnemy(e, dmg, now);
+        const ring = buildNovaRing();
+        ring.position.copy(character.root.position).setY(0.02);
+        scene.add(ring);
+        novaRings.push({ mesh: ring, bornAt: now, ttlMs: 400, maxRadius: radius });
+    }
+    function updateNovaRings(now) {
+        for (let i = novaRings.length - 1; i >= 0; i--) {
+            const r = novaRings[i];
+            const t = (now - r.bornAt) / r.ttlMs;
+            if (t >= 1) { removeFromScene(r.mesh); novaRings.splice(i, 1); continue; }
+            const scale = Math.max(0.001, (r.maxRadius / 0.03) * t);
+            r.mesh.scale.set(scale, scale, scale);
+            r.mesh.material.opacity = 0.55 * (1 - t);
+        }
+    }
+
+    const COOLDOWN_WEAPONS = { bullet: fireBulletWeapon, shotgun: fireShotgunWeapon, nova: fireNovaWeapon };
+
+    // ---- Weapon: orbit blades (continuous) ----
+    function updateOrbitWeapon(dtMs, now) {
+        const w = runState.weapons.find(w => w.id === 'orbit');
+        const rt = weaponRuntime.orbit;
+        if (!w) {
+            if (rt.blades.length) { rt.blades.forEach(m => removeFromScene(m)); rt.blades = []; }
             return;
         }
-        const toTarget = playerTarget.pos.clone().sub(character.root.position);
-        toTarget.y = 0;
-        const dist = toTarget.length();
-
-        if (dist > ARRIVE_RADIUS) {
-            character.setPose('walk');
-            toTarget.normalize();
-            character.root.position.addScaledVector(toTarget, WALK_SPEED * (dtMs / 1000));
-            character.root.rotation.y = Math.atan2(toTarget.x, toTarget.z);
-            playerAttackTimer = 0;
-        } else {
-            character.setPose('guard', { persistent: true });
-            character.root.rotation.y = Math.atan2(toTarget.x, toTarget.z);
-            playerAttackTimer += dtMs;
-            if (playerAttackTimer >= ATTACK_TICK_MS) {
-                playerAttackTimer = 0;
-                playerTarget.entity.hp -= playerDamage(state);
-                if (playerTarget.entity.hp <= 0) {
-                    const earned = awardCommits(1 + playerRewardBonus(state), now);
-                    state.totalSquashed += 1;
-                    squashStreak += 1;
-                    showToast(`+${earned.toFixed(1)} Commits!`);
-                    if (squashStreak % 10 === 0) {
-                        character.setPose('wave');
-                        showToast(`${squashStreak} squash streak! 🎉`, 2200);
-                    }
-                    removeBug(playerTarget);
-                    playerTarget = null;
-                    character.setPose('idle');
+        const stats = WEAPON_DEFS.orbit.stats(w.level);
+        const radius = stats.radius * areaMul();
+        while (rt.blades.length < stats.count) { const mesh = buildOrbitBlade(); scene.add(mesh); rt.blades.push(mesh); }
+        while (rt.blades.length > stats.count) { removeFromScene(rt.blades.pop()); }
+        rt.angle += stats.rotSpeed * (dtMs / 1000);
+        const dmg = stats.damage * mightMul();
+        rt.blades.forEach((mesh, i) => {
+            const a = rt.angle + (i / stats.count) * Math.PI * 2;
+            const bx = character.root.position.x + Math.cos(a) * radius;
+            const bz = character.root.position.z + Math.sin(a) * radius;
+            mesh.position.set(bx, 0.5, bz);
+            mesh.rotation.y = a;
+            for (const e of enemies) {
+                if (e.dead) continue;
+                if (Math.hypot(e.pos.x - bx, e.pos.z - bz) <= e.def.radius + ORBIT_BLADE_HIT_PAD) {
+                    const last = rt.hitMap.get(e) || 0;
+                    if (now - last >= stats.hitTickMs) { rt.hitMap.set(e, now); damageEnemy(e, dmg, now); }
                 }
             }
-        }
+        });
     }
 
-    // ---- Robots ----
-    /** @type {Array<{entity: ReturnType<typeof buildRobot>, target: any, attackTimer: number}>} */
-    const robots = [];
-    function syncRobotCount() {
-        while (robots.length < state.robotLevel) {
-            const entity = buildRobot();
-            entity.root.position.copy(randomFloorPoint());
+    // ---- Weapon: drone turrets (continuous, independent targeting) ----
+    function updateDroneWeapon(dtMs, now) {
+        const w = runState.weapons.find(w => w.id === 'drone');
+        const rt = weaponRuntime.drone;
+        if (!w) {
+            if (rt.drones.length) { rt.drones.forEach(d => removeFromScene(d.entity.root)); rt.drones = []; }
+            return;
+        }
+        const stats = WEAPON_DEFS.drone.stats(w.level);
+        while (rt.drones.length < stats.droneCount) {
+            const entity = buildDrone();
             scene.add(entity.root);
-            robots.push({ entity, target: null, attackTimer: 0 });
+            rt.drones.push({ entity, timer: Math.random() * 400 });
         }
-    }
-
-    function updateRobot(robot, dtMs, now) {
-        if (!robot.target || robot.target.dead) {
-            robot.target = bugs.find(b => !b.claimedBy) || null;
-            if (robot.target) robot.target.claimedBy = 'robot';
-            robot.attackTimer = 0;
-            if (!robot.target) return;
-        }
-        const toTarget = robot.target.pos.clone().sub(robot.entity.root.position);
-        toTarget.y = 0;
-        const dist = toTarget.length();
-        if (dist > ARRIVE_RADIUS) {
-            toTarget.normalize();
-            robot.entity.root.position.addScaledVector(toTarget, WALK_SPEED * 0.8 * (dtMs / 1000));
-            robot.entity.root.rotation.y = Math.atan2(toTarget.x, toTarget.z);
-        } else {
-            robot.attackTimer += dtMs;
-            if (robot.attackTimer >= ATTACK_TICK_MS * 1.3) {
-                robot.attackTimer = 0;
-                robot.entity.playZap();
-                robot.target.entity.hp -= robotDamage() * globalMultiplier(state, now);
-                if (robot.target.entity.hp <= 0) {
-                    awardCommits(0.5, now);
-                    state.totalSquashed += 1;
-                    removeBug(robot.target);
-                    robot.target = null;
+        while (rt.drones.length > stats.droneCount) { const d = rt.drones.pop(); removeFromScene(d.entity.root); }
+        const dmg = stats.damage * mightMul();
+        const cd = stats.cooldownMs * cooldownMul();
+        rt.drones.forEach((d, i) => {
+            const angle = now / 1000 * 0.6 + i * (Math.PI * 2 / rt.drones.length);
+            const px = character.root.position.x + Math.cos(angle) * DRONE_ORBIT_RADIUS;
+            const pz = character.root.position.z + Math.sin(angle) * DRONE_ORBIT_RADIUS;
+            d.entity.root.position.set(px, 0, pz);
+            d.entity.update(now / 1000);
+            d.timer -= dtMs;
+            if (d.timer <= 0) {
+                const target = nearestEnemy(new THREE.Vector3(px, 0, pz), stats.range);
+                if (target) {
+                    d.entity.playZap();
+                    const dir = target.pos.clone().sub(new THREE.Vector3(px, 0, pz)).setY(0).normalize();
+                    spawnPlayerProjectileDir(new THREE.Vector3(px, 0.6, pz), dir, 7.5, dmg, 0, stats.range + 0.4, buildBulletMesh());
+                    d.timer = cd;
+                } else {
+                    d.timer = 150;
                 }
             }
-        }
+        });
     }
 
-    // ---- Ambient idle flavor (coffee-break sit) when nothing else is happening ----
-    let ambientTimer = null;
-    function scheduleAmbient() {
-        clearTimeout(ambientTimer);
-        ambientTimer = setTimeout(() => {
-            const busy = playerTarget || character.getPose() === 'guard' || character.getPose() === 'wave';
-            if (!busy && state.hasCoffeeBreak && Math.random() < 0.5) {
-                character.setPose('sit', { persistent: true });
-                setTimeout(() => {
-                    if (character.getPose() === 'sit') character.setPose('idle');
-                }, 3500);
+    function updateWeapons(dtMs, now) {
+        updateOrbitWeapon(dtMs, now);
+        updateDroneWeapon(dtMs, now);
+        runState.weapons.forEach(w => {
+            const fn = COOLDOWN_WEAPONS[w.id];
+            if (!fn) return;
+            const stats = WEAPON_DEFS[w.id].stats(w.level);
+            const cd = stats.cooldownMs * cooldownMul();
+            w.cooldownMs -= dtMs;
+            if (w.cooldownMs <= 0) {
+                fn(w, now);
+                w.cooldownMs += cd;
+                if (w.cooldownMs < 0) w.cooldownMs = 0;
             }
-            scheduleAmbient();
-        }, 8000 + Math.random() * 6000);
+        });
     }
-    scheduleAmbient();
+
+    // ---- Input ----
+    const pressedKeys = new Set();
+    const MOVE_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright']);
+    window.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if (MOVE_KEYS.has(key)) {
+            pressedKeys.add(key);
+            moveHint.classList.add('kc-hide');
+            e.preventDefault();
+        }
+    });
+    window.addEventListener('keyup', (e) => pressedKeys.delete(e.key.toLowerCase()));
+
+    // Touch: player is always camera-centered, so move in the direction of
+    // the touch point relative to the stage's own center (not the whole
+    // window, since the HUD strip above shifts the stage down a bit).
+    let touchDirX = 0, touchDirZ = 0, touchActive = false;
+    const TOUCH_DEAD_ZONE_PX = 12;
+    function updateTouchDir(e) {
+        if (!e.touches || e.touches.length === 0) return;
+        const touch = e.touches[0];
+        const rect = stageWrap.getBoundingClientRect();
+        const dx = touch.clientX - (rect.left + rect.width / 2);
+        const dy = touch.clientY - (rect.top + rect.height / 2);
+        const dist = Math.hypot(dx, dy);
+        if (dist < TOUCH_DEAD_ZONE_PX) { touchDirX = 0; touchDirZ = 0; return; }
+        touchDirX = dx / dist;
+        touchDirZ = dy / dist;
+    }
+    stageWrap.addEventListener('touchstart', (e) => {
+        touchActive = true;
+        moveHint.classList.add('kc-hide');
+        updateTouchDir(e);
+        e.preventDefault();
+    }, { passive: false });
+    stageWrap.addEventListener('touchmove', (e) => { updateTouchDir(e); e.preventDefault(); }, { passive: false });
+    const clearTouch = () => { touchActive = false; touchDirX = 0; touchDirZ = 0; };
+    stageWrap.addEventListener('touchend', clearTouch);
+    stageWrap.addEventListener('touchcancel', clearTouch);
+
+    function updatePlayerMovement(dt) {
+        let mx = 0, mz = 0;
+        if (pressedKeys.has('w') || pressedKeys.has('arrowup')) mz -= 1;
+        if (pressedKeys.has('s') || pressedKeys.has('arrowdown')) mz += 1;
+        if (pressedKeys.has('a') || pressedKeys.has('arrowleft')) mx -= 1;
+        if (pressedKeys.has('d') || pressedKeys.has('arrowright')) mx += 1;
+        if (touchActive) { mx += touchDirX; mz += touchDirZ; }
+        const moving = mx !== 0 || mz !== 0;
+        if (moving) {
+            const len = Math.hypot(mx, mz);
+            mx /= len; mz /= len;
+            const speed = PLAYER_BASE_SPEED * speedMul();
+            let nx = character.root.position.x + mx * speed * dt;
+            let nz = character.root.position.z + mz * speed * dt;
+            const resolved = resolveCollision(nx, nz, PLAYER_RADIUS, obstacles, { flying: false });
+            nx = resolved.x; nz = resolved.z;
+            const r = Math.hypot(nx, nz);
+            if (r > ARENA_CLAMP_RADIUS) { nx *= ARENA_CLAMP_RADIUS / r; nz *= ARENA_CLAMP_RADIUS / r; }
+            character.root.position.x = nx;
+            character.root.position.z = nz;
+            character.root.rotation.y = Math.atan2(mx, mz);
+            if (character.getPose() !== 'wave') character.setPose('walk');
+        } else if (character.getPose() === 'walk') {
+            character.setPose('idle');
+        }
+    }
 
     // ---- Game loop ----
     let lastTick = performance.now();
-    let saveCounter = 0;
     let rafId = null;
     function tick() {
         try {
             const now = performance.now();
-            const dtMs = Math.min(now - lastTick, 6 * 60 * 60 * 1000);
+            const dtMs = Math.min(now - lastTick, 200);
             const dt = dtMs / 1000;
             lastTick = now;
 
-            const rate = passiveRate(state);
-            if (rate > 0) {
-                const earned = rate * globalMultiplier(state, now) * dt;
-                state.commits += earned;
-                state.totalEarned += earned;
-            }
-            if (state.crunchActiveUntil && state.crunchActiveUntil <= now) state.crunchActiveUntil = 0;
+            if (runState && runState.active) {
+                if (!runState.paused) {
+                    runState.timeSec += dt;
+                    updatePlayerMovement(dt);
 
-            if (!document.hidden) {
-                state.playSeconds += dt;
-                if (state.playSeconds >= PLAYTIME_THRESHOLD_SEC && !state.highScoreSubmitted && highScoreInvite.style.display === 'none') {
-                    highScoreInvite.style.display = 'block';
+                    const toSpawn = spawnDirector.update(runState.timeSec, dtMs, enemies.length);
+                    toSpawn.forEach(id => spawnEnemyOfType(id, runState.timeSec));
+
+                    enemies.slice().forEach(e => updateEnemy(e, dtMs, now));
+                    updateEnemyProjectiles(dt, now);
+                    updatePlayerProjectiles(dt, now);
+                    updateWeapons(dtMs, now);
+                    updateXpOrbs(dt, now);
+                    updateNovaRings(now);
+
+                    if (runState.timeSec >= VICTORY_TIME_SEC) endRun('victory', now);
                 }
+                renderRunUI(now);
             }
 
-            syncRobotCount();
-            const t = now / 1000;
-            bugs.forEach(b => b.entity.update(t));
-            robots.forEach(r => { r.entity.update(t); updateRobot(r, dtMs, now); });
-            updatePlayer(dtMs, now);
-
-            character.update();
-            updateCamera();
-            renderer.render(scene, camera);
-            renderUI(now);
-
-            saveCounter += dt;
-            if (saveCounter > 5) { saveCounter = 0; saveState(state); }
+            if (runEl.style.display !== 'none') {
+                character.update();
+                updateCamera();
+                renderer.render(scene, camera);
+            }
         } catch (err) {
             console.error('[kc-game] tick error (continuing):', err);
         }
         rafId = requestAnimationFrame(tick);
     }
 
-    function renderUI(now) {
-        commitsValueEl.textContent = formatNum(state.commits);
-        rankEl.textContent = currentRank(state.totalEarned);
-        const rate = passiveRate(state);
-        const mult = globalMultiplier(state, now);
-        rateEl.textContent = rate > 0 ? `+${(rate * mult).toFixed(1)}/sec` : '';
+    function renderRunUI(now) {
+        const hpPct = Math.max(0, runState.hp / runState.maxHp) * 100;
+        hpFillEl.style.width = `${hpPct}%`;
+        hpTextEl.textContent = `${Math.ceil(runState.hp)}/${runState.maxHp}`;
+        xpFillEl.style.width = `${Math.min(100, (runState.xp / runState.xpToNext) * 100)}%`;
+        timerEl.textContent = formatTime(runState.timeSec);
+        levelValueEl.textContent = runState.level;
 
-        if (state.hasCrunchMode) {
-            crunchBtn.style.display = 'block';
-            const onCooldown = state.crunchCooldownUntil > now;
-            const active = state.crunchActiveUntil > now;
-            crunchBtn.disabled = onCooldown;
-            crunchBtn.textContent = active
-                ? `CRUNCHING… ${Math.ceil((state.crunchActiveUntil - now) / 1000)}s`
-                : onCooldown
-                    ? `COOLDOWN ${Math.ceil((state.crunchCooldownUntil - now) / 1000)}s`
-                    : 'CRUNCH MODE';
+        const sig = runState.weapons.map(w => `${w.id}:${w.level}`).join('|');
+        if (sig !== weaponTrayEl.dataset.sig) {
+            weaponTrayEl.dataset.sig = sig;
+            weaponTrayEl.innerHTML = runState.weapons.map(w =>
+                `<div class="kc-weapon-chip" title="${WEAPON_DEFS[w.id].name}">${WEAPON_DEFS[w.id].icon}<span>${w.level}</span></div>`
+            ).join('');
         }
-        renderUpgrades();
     }
 
-    let lastUpgradeSignature = '';
-    function renderUpgrades() {
-        const visible = UPGRADES.filter(u => u.visible(state));
-        const signature = visible.map(u => `${u.id}:${u.owned ? u.owned(state) : u.level(state)}:${Math.floor(state.commits)}`).join('|');
-        if (signature === lastUpgradeSignature) return;
-        lastUpgradeSignature = signature;
+    // ---- Run lifecycle ----
+    function startRun() {
+        const maxHp = BASE_MAX_HP + (meta.upgrades.vitality || 0) * 12;
+        runState = {
+            active: true, paused: false,
+            hp: maxHp, maxHp,
+            level: 1, xp: 0, xpToNext: xpForLevel(1),
+            weapons: [{ id: STARTING_WEAPON, level: 1, cooldownMs: 0 }],
+            passives: defaultPassives(),
+            kills: 0, timeSec: 0,
+            invulnUntil: 0, revivesLeft: meta.upgrades.revive || 0,
+            bonusCommits: 0, healOnNextApply: false,
+        };
+        pendingLevelUps = 0;
+        clearArena();
+        setupObstacles();
+        character.root.position.set(0, 0, 0);
+        character.root.rotation.y = 0;
+        character.setPose('idle');
+        spawnDirector = createSpawnDirector();
 
-        upgradesEl.innerHTML = visible.map(u => {
-            const owned = u.oneTime ? u.owned(state) : false;
-            const cost = u.cost(state);
-            const affordable = state.commits >= cost;
-            const levelLabel = u.oneTime ? (owned ? 'OWNED' : `${cost} Commits`) : `Lv.${u.level(state)} — ${cost} Commits`;
+        lobbyEl.style.display = 'none';
+        runEl.style.display = 'flex';
+        summaryEl.style.display = 'none';
+        levelUpEl.style.display = 'none';
+        moveHint.classList.remove('kc-hide');
+        resizeStage();
+        track?.('survivor_run_start');
+    }
+
+    function endRun(reason, now) {
+        if (!runState.active) return;
+        runState.active = false;
+        const minutes = runState.timeSec / 60;
+        const fortuneMul = 1 + (meta.upgrades.fortune || 0) * 0.08;
+        const earned = Math.round((10 + runState.kills * 1.5 + runState.level * 6 + minutes * 8) * fortuneMul) + (runState.bonusCommits || 0);
+        runState.earnedCommits = earned;
+        meta.commits += earned;
+        meta.totalEarned += earned;
+        meta.totalRuns += 1;
+        meta.bestLevel = Math.max(meta.bestLevel, runState.level);
+        meta.bestTimeSec = Math.max(meta.bestTimeSec, Math.floor(runState.timeSec));
+        saveMeta(meta);
+        track?.('survivor_run_end', { reason, level: runState.level, timeSec: Math.floor(runState.timeSec) });
+
+        summaryTitleEl.textContent = reason === 'victory' ? 'SPRINT COMPLETE! 🎉' : 'YOU GOT MERGED 💀';
+        summaryStatsEl.innerHTML = `
+            <div>Level reached: <strong>${runState.level}</strong></div>
+            <div>Bugs squashed: <strong>${runState.kills}</strong></div>
+            <div>Time survived: <strong>${formatTime(runState.timeSec)}</strong></div>
+            <div class="kc-summary-earned">+${earned} Commits</div>
+        `;
+        runEl.style.display = 'none';
+        levelUpEl.style.display = 'none';
+        summaryEl.style.display = 'flex';
+        highScoreSubmitBtn.disabled = false;
+        highScoreSubmitBtn.textContent = 'SEND';
+        nameInput.value = '';
+    }
+
+    function returnToLobby() {
+        summaryEl.style.display = 'none';
+        lobbyEl.style.display = 'flex';
+        renderLobby();
+    }
+
+    // ---- Lobby / meta upgrades ----
+    function renderLobby() {
+        lobbyCommitsEl.textContent = formatNum(meta.commits);
+        lobbyRankEl.textContent = currentRank(meta.totalEarned);
+        lobbyBestLevelEl.textContent = meta.bestLevel;
+        lobbyBestTimeEl.textContent = formatTime(meta.bestTimeSec);
+        renderMetaUpgrades();
+    }
+    function renderMetaUpgrades() {
+        metaUpgradesEl.innerHTML = META_UPGRADES.map(u => {
+            const level = meta.upgrades[u.id] || 0;
+            const maxed = u.maxLevel != null && level >= u.maxLevel;
+            const cost = costFor(u.baseCost, level);
+            const affordable = meta.commits >= cost;
             return `
-                <div class="kc-upgrade ${owned ? 'kc-owned' : ''}">
+                <div class="kc-upgrade ${maxed ? 'kc-owned' : ''}">
                     <div class="kc-upgrade-info">
-                        <div class="kc-upgrade-name">${u.name}</div>
+                        <div class="kc-upgrade-name">${u.icon} ${u.name} <span class="kc-upgrade-lv">Lv.${level}</span></div>
                         <div class="kc-upgrade-desc">${u.desc}</div>
                     </div>
-                    <button class="kc-upgrade-buy" data-id="${u.id}" ${owned || !affordable ? 'disabled' : ''}>
-                        ${owned ? '✓' : levelLabel}
+                    <button class="kc-upgrade-buy" data-id="${u.id}" ${maxed || !affordable ? 'disabled' : ''}>
+                        ${maxed ? 'MAX' : `${cost} Commits`}
                     </button>
                 </div>`;
         }).join('');
-
-        upgradesEl.querySelectorAll('.kc-upgrade-buy').forEach(btn => {
+        metaUpgradesEl.querySelectorAll('.kc-upgrade-buy').forEach(btn => {
             btn.addEventListener('click', () => {
-                const upgrade = UPGRADES.find(u => u.id === btn.dataset.id);
-                if (!upgrade) return;
-                const cost = upgrade.cost(state);
-                if (state.commits < cost) return;
-                state.commits -= cost;
-                upgrade.buy(state);
-                lastUpgradeSignature = '';
-                showToast(`${upgrade.name} acquired!`);
-                saveState(state);
+                const u = META_UPGRADES.find(u => u.id === btn.dataset.id);
+                const level = meta.upgrades[u.id] || 0;
+                const cost = costFor(u.baseCost, level);
+                if (meta.commits < cost) return;
+                meta.commits -= cost;
+                meta.upgrades[u.id] = level + 1;
+                saveMeta(meta);
+                renderLobby();
             });
         });
     }
 
-    crunchBtn.addEventListener('click', () => {
-        const now = performance.now();
-        if (state.crunchCooldownUntil > now) return;
-        state.crunchActiveUntil = now + CRUNCH_DURATION_MS;
-        state.crunchCooldownUntil = now + CRUNCH_DURATION_MS + CRUNCH_COOLDOWN_MS;
-        showToast('Crunch mode engaged — 3x income!', 2200);
-    });
-
-    closeBtn.addEventListener('click', () => {
-        saveState(state);
-        cancelAnimationFrame(rafId);
-        clearTimeout(ambientTimer);
-        clearTimeout(spawnTimer);
-        window.removeEventListener('resize', resizeStage);
-        renderer.dispose();
-        container.remove();
-        launched = false;
-    });
-    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeBtn.click(); });
-
-    highScoreDismissBtn.addEventListener('click', () => { highScoreInvite.style.display = 'none'; });
+    startRunBtn.addEventListener('click', startRun);
+    summaryContinueBtn.addEventListener('click', returnToLobby);
     highScoreSubmitBtn.addEventListener('click', async () => {
         highScoreSubmitBtn.disabled = true;
         highScoreSubmitBtn.textContent = 'SENDING…';
@@ -571,47 +927,30 @@ function launchGame() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: (nameInput.value || 'Anonymous').slice(0, 40),
-                    score: Math.floor(state.totalEarned),
-                    rank: currentRank(state.totalEarned),
-                    playMinutes: Math.round(state.playSeconds / 60),
+                    p: encodeHighscorePayload({
+                        name: (nameInput.value || 'Anonymous').slice(0, 40),
+                        level: runState ? runState.level : meta.bestLevel,
+                        commitsEarned: runState ? (runState.earnedCommits || 0) : 0,
+                        rank: currentRank(meta.totalEarned),
+                        playMinutes: runState ? Math.round(runState.timeSec / 60) : 0,
+                    }),
                 }),
             });
-            state.highScoreSubmitted = true;
-            saveState(state);
-            highScoreInvite.innerHTML = '<p>Sent! Thanks for playing. 🎉</p>';
+            highScoreSubmitBtn.textContent = 'SENT ✓';
         } catch {
             highScoreSubmitBtn.disabled = false;
-            highScoreSubmitBtn.textContent = 'SEND HIGH SCORE';
+            highScoreSubmitBtn.textContent = 'SEND';
             showToast("Couldn't send right now — try again later.");
         }
     });
 
-    // Kick things off.
-    syncRobotCount();
-    scheduleNextSpawn();
-    spawnBug();
-    setTimeout(() => spawnBug(), 400);
+    track?.('hidden_game_discovered');
+    renderLobby();
     tick();
 }
 
-function initKonamiListener() {
-    const sequence = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
-    let idx = 0;
-    document.addEventListener('keydown', (e) => {
-        const key = e.key.toLowerCase();
-        if (key === sequence[idx]) {
-            idx++;
-            if (idx === sequence.length) { idx = 0; launchGame(); }
-        } else {
-            idx = key === sequence[0] ? 1 : 0;
-        }
-    });
-    console.log('%cEvery code minion has a secret.', 'color:#00d2ff;font-size:14px;font-weight:bold;');
-}
-
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initKonamiListener);
+    document.addEventListener('DOMContentLoaded', initGame);
 } else {
-    initKonamiListener();
+    initGame();
 }

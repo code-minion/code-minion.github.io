@@ -1,0 +1,4 @@
+# Keep the hidden game out of search results — reached only via the
+# Konami code, not meant to show up in a Google search for the portfolio.
+User-agent: *
+Disallow: /survivor.html

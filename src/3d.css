@@ -454,6 +454,10 @@ body {
     text-transform: uppercase;
 }
 
+#kc-mobile-play {
+    display: none; /* desktop players use the Konami code instead — overridden below on mobile */
+}
+
 @media (max-width: 768px) {
     .glass-nav { display: none; }
     .mobile-nav { display: flex; }
@@ -482,6 +486,26 @@ body {
     #speech-bubble::before {
         right: 50%;
         transform: translateX(50%);
+    }
+
+    #kc-mobile-play {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        right: 20px;
+        bottom: 195px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--glass-bg, rgba(5, 12, 20, 0.7));
+        border: 1px solid var(--accent-pink, #ff2d7e);
+        color: var(--accent-pink, #ff2d7e);
+        font-size: 1.3rem;
+        text-decoration: none;
+        z-index: 1000;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 0 15px rgba(255, 45, 126, 0.25);
     }
 }
 
