@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         qrMarginLeft: 20,
         qrMarginTop: 0,
         qrOpacity: 1,
-        showLabel: true,
+        showLabel: false,
         label: 'Portfolio'
     };
 
@@ -46,15 +46,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cvData.contact.location) contactLinks.push(`<span>${cvData.contact.location}</span>`);
     if (cvData.contact.linkedin) contactLinks.push(`<span>linkedin.com/in/codeminion</span>`);
 
-    // Skills
-    const skillsHtml = cvData.skills.map(s => {
+    // Skills — print CV hides entries flagged `printSkip` (weak/redundant
+    // claims for this CV's targeting) while keeping them in the shared
+    // data for cv.js and the chatbot.
+    const skillsHtml = cvData.skills.filter(s => !s.printSkip).map(s => {
         return `<div class="skill-item">
             <span class="skill-name">${s.name}</span>
             <span class="skill-prof">${s.proficiency}</span>
         </div>`;
     }).join('');
 
-    // Experience
+    // Experience — print CV prefers the short `cvSummary` (added for this
+    // page specifically) over the full `description`, which stays intact
+    // for cv.js / project pages / the chatbot's system prompt. Don't shorten
+    // `description` itself to fix print length; add/adjust `cvSummary` in
+    // cv-data.json instead.
     const expHtml = cvData.experience.map(e => {
         return `
         <div class="entry">
@@ -63,24 +69,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="entry-date">${e.period}</span>
             </div>
             <div class="entry-subtitle">${e.company}</div>
-            <div class="entry-desc">${e.description}</div>
+            <div class="entry-desc">${e.cvSummary || e.description}</div>
             <div class="tags">
-                ${e.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                ${e.tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
             </div>
         </div>`;
     }).join('');
 
-    // Projects
-    const projHtml = cvData.projects.map(p => {
+    // Projects — print CV shows featured highlights only, with the short
+    // summary blurb rather than the full description (kept for the
+    // interactive site/project pages), to keep this to a 2-4 page CV.
+    const printProjects = cvData.projects.filter(p => p.featured !== false);
+    const projHtml = printProjects.map(p => {
         return `
         <div class="entry">
             <div class="entry-header">
                 <h3>${p.title}</h3>
                 <span class="entry-date">${p.year}</span>
             </div>
-            <div class="entry-desc">${p.description}</div>
+            <div class="entry-desc">${p.summary || p.description}</div>
             <div class="tags">
-                ${p.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                ${p.tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
             </div>
         </div>`;
     }).join('');

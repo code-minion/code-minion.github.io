@@ -19,11 +19,13 @@
     },
     {
       "name": "API design",
-      "proficiency": "expert"
+      "proficiency": "expert",
+      "printSkip": true
     },
     {
       "name": "Distributed systems",
-      "proficiency": "advanced"
+      "proficiency": "advanced",
+      "printSkip": true
     },
     {
       "name": "React",
@@ -35,15 +37,17 @@
     },
     {
       "name": "Prompt design",
-      "proficiency": "expert"
+      "proficiency": "expert",
+      "printSkip": true
     },
     {
       "name": "LLM API integration",
       "proficiency": "expert"
     },
     {
-      "name": "Rapid prototyping with AI tools",
-      "proficiency": "expert"
+      "name": "AI rapid prototyping",
+      "proficiency": "expert",
+      "printSkip": true
     },
     {
       "name": "AI development",
@@ -51,11 +55,13 @@
     },
     {
       "name": "BFF patterns",
-      "proficiency": "advanced"
+      "proficiency": "advanced",
+      "printSkip": true
     },
     {
       "name": "Scalable systems",
-      "proficiency": "advanced"
+      "proficiency": "advanced",
+      "printSkip": true
     },
     {
       "name": "Cloud (Azure / AWS / GCP)",
@@ -63,26 +69,28 @@
     },
     {
       "name": "Javascript",
-      "proficiency": "advanced"
+      "proficiency": "advanced",
+      "printSkip": true
     },
     {
       "name": "Game development",
-      "proficiency": "intermediate"
+      "proficiency": "intermediate",
+      "printSkip": true
     },
     {
       "name": "Docker / containerisation",
       "proficiency": "advanced"
     },
     {
-      "name": "Databases (SQL Server primary; MongoDB & PostgreSQL working knowledge)",
+      "name": "Database Development",
       "proficiency": "advanced"
     },
     {
-      "name": "Messaging & event streaming (Kafka, IBM MQ, Azure Service Bus / Event Grid)",
+      "name": "Messaging (Kafka, IBM MQ, Azure)",
       "proficiency": "advanced"
     },
     {
-      "name": "DevOps mindset (end-to-end product ownership)",
+      "name": "DevOps mindset",
       "proficiency": "advanced"
     }
   ],
@@ -104,6 +112,7 @@
       "company": "ASB Bank",
       "period": "2024 to Current",
       "description": "Architecting and leading the development of high-concurrency BFF (Backend-for-Frontend) services within the Share Trading and Trade Banking domains. Driving technical strategy and future roadmap planning for business-critical banking infrastructure. Integrates with enterprise messaging and event-streaming platforms (IBM MQ, Kafka) for two-way vendor and document-upload workflows, and pioneered runbook-driven observability practices that improved support turnaround. Championing the adoption of AI-assisted engineering practices across teams to increase velocity and maintain robust code hygiene. Serving as a primary technical liaison between C-suite stakeholders and cross-functional engineering squads, ensuring architectural alignment with long-term business objectives.",
+      "cvSummary": "Architect and lead high-concurrency BFF services across Share Trading and Trade Banking, integrating enterprise messaging platforms (IBM MQ, Kafka) for vendor and document-upload workflows. Pioneered runbook-driven observability practices that improved support turnaround, and champion AI-assisted engineering practices across teams. Primary technical liaison between C-suite stakeholders and cross-functional squads.",
       "tags": [
         "Infrastructure Leadership",
         "Systems Architecture",
@@ -117,6 +126,7 @@
       "company": "Serko",
       "period": "2022 → 2024",
       "description": "Engineered scalable React and .NET solutions for global flight booking engines, focusing on high-performance search aggregation. Mentored senior-level peers in modernizing legacy architectures and implementing efficient React patterns. Successfully led rapid prototyping initiatives, winning the Serko Hackathon 2023 for a solution that significantly reduced search latency. Collaborated with UX and Product leads to redefine the enterprise booking journey, resulting in measurable increases in customer conversion rates.",
+      "cvSummary": "Engineered scalable React/.NET solutions for global flight booking engines, focused on high-performance search aggregation, and mentored senior peers on modernizing legacy architecture. Won Serko Hackathon 2023 for a search-latency solution; partnered with UX/Product to redefine the booking journey and lift conversion.",
       "tags": [
         "High-Performance Computing",
         "Mentorship",
@@ -129,6 +139,7 @@
       "company": "ASB Bank",
       "period": "2020 → 2022",
       "description": "Developed modern web application forms and BFF services for FNB and Home Lending products. Contributed to major digital transformation initiatives across customer onboarding and lending workflows. Supported architectural discussions and implementation planning.",
+      "cvSummary": "Built modern web app forms and BFF services for FNB/Home Lending digital transformation, customer onboarding, and lending workflows.",
       "tags": [
         "C# .NET",
         "React Native",
@@ -140,6 +151,7 @@
       "company": "Datacom",
       "period": "2020 → 2021",
       "description": "Sub-contracted directly to ASB Bank, initiating work on the digital transformation of FNB and Home Lending products. Built foundational C# .NET backend services to automate complex lending workflows.",
+      "cvSummary": "Sub-contracted to ASB via Datacom, building foundational C# .NET services for the FNB/Home Lending digital transformation.",
       "tags": [
         "C# .NET",
         "API Design",
@@ -151,6 +163,7 @@
       "company": "Rush Digital",
       "period": "2017 → 2019",
       "description": "Architected multi-modal digital experiences across Computer Vision, AR/VR (XR), and high-scale mobile platforms. Spearheaded the development of complex chatbot ecosystems and low-level driver integrations for enterprise clients. Operated as a key technical pivot between creative design teams and engineering squads, translating high-level concepts into stable, production-ready code in a high-velocity agency environment.",
+      "cvSummary": "Architected multi-modal digital experiences across computer vision, AR/VR, and mobile platforms, including enterprise chatbot ecosystems. Key technical pivot between creative and engineering teams in a high-velocity agency environment.",
       "tags": [
         "Computer Vision",
         "XR Engineering",
@@ -163,6 +176,7 @@
       "company": "Strategic Engagements",
       "period": "2007 → 2021",
       "description": "Diverse background encompassing technical advisory for startups (EverSoSafe NZ), subcontracted engineering for government/enterprise (Datacom), and foundational game development (CerebralFix). Specialized in rapid technical assessment, architectural cleanup, and cross-platform deployment. Leveraged deep expertise in Unity/C# and full-stack web technologies to support various innovation-driven projects.",
+      "cvSummary": "Technical advisory for startups (EverSoSafe NZ) and foundational game development (CerebralFix), spanning rapid technical assessment, architectural cleanup, and cross-platform deployment in Unity/C# and full-stack web.",
       "tags": [
         "Technical Advisory",
         "Foundational Engineering",
@@ -214,7 +228,7 @@
     {
       "role": "VP of Learning, inaugural committee",
       "org": "SpeakIT — ASB-wide public-speaking / communication development club (Toastmasters-style)",
-      "status": "Newly launched (someone else's initiative); first session 2026",
+      "status": "2026",
       "description": "Was independently looking to join a Toastmasters-style club to build presentation/communication skills, then joined SpeakIT's inaugural committee as VP of Learning when it launched. Club is open to ASB employees bank-wide."
     }
   ],
@@ -344,7 +358,7 @@
           "url": "#"
         }
       ],
-      "featured": true
+      "featured": false
     }
   ],
   "preferences": {
