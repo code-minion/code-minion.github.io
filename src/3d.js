@@ -589,11 +589,15 @@ function handleNavAction(action) {
     clearBillboards();
     // Derive billboard world position from camera axes — guaranteed to be on-screen.
     // column 0 = camera right, column 1 = camera up, in world space.
+    // BILLBOARD_UP_OFFSET was 1.9, which pushed the panel's top edge up under
+    // the fixed top navbar on desktop — lowered so the whole panel clears it.
+    // (1.35 was tried first and came down too far; split the difference.)
+    const BILLBOARD_UP_OFFSET = 1.625;
     const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
     const camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
     const basePos = controls.target.clone()
         .addScaledVector(camRight, 5.2)   // push right in screen space
-        .addScaledVector(camUp, 1.9);
+        .addScaledVector(camUp, BILLBOARD_UP_OFFSET);
 
     const PW = 4.5;   // panel width
     const PH = 3.4;   // panel height
@@ -609,7 +613,7 @@ function handleNavAction(action) {
             // Re-derive basePos now camera has moved to home position
             camRight.setFromMatrixColumn(camera.matrixWorld, 0);
             camUp.setFromMatrixColumn(camera.matrixWorld, 1);
-            basePos.copy(controls.target).addScaledVector(camRight, 5.2).addScaledVector(camUp, 1.9);
+            basePos.copy(controls.target).addScaledVector(camRight, 5.2).addScaledVector(camUp, BILLBOARD_UP_OFFSET);
             spawnBillboard(`# ${cvData.contact.name}\n\n${cvData.summary}\n\n---\nClick other nav options to explore.`, basePos, { width: PW, height: PH });
             break;
         case 'projects': {

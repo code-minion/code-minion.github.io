@@ -234,6 +234,25 @@
   ],
   "projects": [
     {
+      "id": "inkwell",
+      "title": "Inkwell",
+      "year": 2026,
+      "description": "Mobile-first PDF editor that runs 100% in the browser — add text, draw or type a signature, and stamp dates or checkmarks onto any PDF, then export the finished file. The document never touches a server.",
+      "summary": "Sign and fill PDFs entirely in your browser — your file never leaves your device.",
+      "tags": [
+        "PDF",
+        "Next.js",
+        "Privacy"
+      ],
+      "links": [
+        {
+          "label": "TRY_IT",
+          "url": "https://inkwell-v1-ten.vercel.app"
+        }
+      ],
+      "featured": true
+    },
+    {
       "id": "idle-jobber",
       "title": "Idle Jobber",
       "year": 2026,
