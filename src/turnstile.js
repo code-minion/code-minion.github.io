@@ -2,9 +2,10 @@
  * turnstile.js — Cloudflare Turnstile widget manager
  *
  * Usage:
- *   import { prefetchTurnstileToken, getTurnstileToken } from './turnstile.js';
+ *   import { prefetchTurnstileToken, getTurnstileToken, shouldHoldInputForTurnstile } from './turnstile.js';
  *   prefetchTurnstileToken();               // fire-and-forget, warm up a token early
  *   const token = await getTurnstileToken(); // wait for it when actually sending
+ *   // Hold the composer only while prefetchStatus === 'pending' after message #1.
  */
 
 // ⚠️ Replace this value with your Cloudflare Turnstile SITE KEY from the dashboard.
@@ -13,30 +14,88 @@ const TURNSTILE_SITE_KEY = '0x4AAAAAAC0uqHgTVbTJsHiU';
 
 const RETRY_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 400;
+const SCRIPT_TIMEOUT_MS = 8000;
+const WIDGET_TIMEOUT_MS = 10000;
+const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
 let widgetId = null;
 // The in-flight/resolved token fetch. Kept warm so a prefetch started early
 // (e.g. when the chat panel opens) is reused by the eventual getTurnstileToken()
 // call instead of starting a fresh, slower fetch right when the user hits send.
 let pendingTokenPromise = null;
+let scriptLoadPromise = null;
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
+ * Chat should only disable the composer while a token fetch is still in flight.
+ * A failed or idle prefetch must not lock the visitor out — message #2+ still
+ * goes through getTurnstileToken() at send time.
+ */
+export function shouldHoldInputForTurnstile(historyLength, prefetchStatus) {
+    return historyLength > 0 && prefetchStatus === 'pending';
+}
+
+/**
  * Injects the Cloudflare Turnstile script if not already loaded.
+ * Rejects on network/blocker errors and on timeout so a hung load cannot
+ * leave the chat waiting forever.
  */
 function loadTurnstileScript() {
-    return new Promise((resolve) => {
-        if (window.turnstile) return resolve();
+    if (window.turnstile) return Promise.resolve();
+    if (scriptLoadPromise) return scriptLoadPromise;
+
+    scriptLoadPromise = new Promise((resolve, reject) => {
+        let settled = false;
+        let timeoutId;
+        let scriptEl = null;
+
+        const succeed = () => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            if (window.turnstile) {
+                resolve();
+            } else {
+                scriptLoadPromise = null;
+                scriptEl?.remove();
+                reject(new Error('Turnstile script loaded without API'));
+            }
+        };
+        const fail = (reason) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            scriptLoadPromise = null;
+            scriptEl?.remove();
+            reject(new Error(reason));
+        };
+
+        timeoutId = setTimeout(() => {
+            fail('Turnstile script load timed out');
+        }, SCRIPT_TIMEOUT_MS);
+
+        const existing = document.querySelector(`script[src="${TURNSTILE_SCRIPT_SRC}"]`);
+        if (existing) {
+            scriptEl = existing;
+            existing.addEventListener('load', succeed);
+            existing.addEventListener('error', () => fail('Turnstile script failed to load'));
+            return;
+        }
+
         const script = document.createElement('script');
-        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        scriptEl = script;
+        script.src = TURNSTILE_SCRIPT_SRC;
         script.async = true;
         script.defer = true;
-        script.onload = () => resolve();
+        script.onload = succeed;
+        script.onerror = () => fail('Turnstile script failed to load');
         document.head.appendChild(script);
     });
+
+    return scriptLoadPromise;
 }
 
 /**
@@ -70,20 +129,24 @@ function renderWidgetAndWait() {
     container.style.display = 'flex'; // Show for challenge
 
     return new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = (fn) => (value) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            container.style.display = 'none';
+            fn(value);
+        };
+
+        const timeoutId = setTimeout(() => {
+            finish(reject)(new Error('Turnstile widget timed out'));
+        }, WIDGET_TIMEOUT_MS);
+
         widgetId = window.turnstile.render('#cf-turnstile-container', {
             sitekey: TURNSTILE_SITE_KEY,
-            callback: (token) => {
-                container.style.display = 'none'; // Hide once done
-                resolve(token);
-            },
-            'error-callback': () => {
-                container.style.display = 'none';
-                reject(new Error('Turnstile widget failed'));
-            },
-            'expired-callback': () => {
-                container.style.display = 'none';
-                reject(new Error('Turnstile token expired'));
-            },
+            callback: (token) => finish(resolve)(token),
+            'error-callback': () => finish(reject)(new Error('Turnstile widget failed')),
+            'expired-callback': () => finish(reject)(new Error('Turnstile token expired')),
         });
     });
 }
@@ -100,6 +163,10 @@ async function fetchTokenWithRetry() {
             return await renderWidgetAndWait();
         } catch (e) {
             if (attempt === RETRY_ATTEMPTS) throw e;
+            // Timeouts mean the challenge never came back — retrying the same
+            // hung widget just stretches a dead-end. Leave retries for fast
+            // widget errors (network blip, expired token).
+            if (e?.message && String(e.message).includes('timed out')) throw e;
             await wait(RETRY_DELAY_MS);
         }
     }
@@ -121,7 +188,15 @@ function startTokenFetch() {
  */
 export function prefetchTurnstileToken() {
     if (!pendingTokenPromise) {
-        pendingTokenPromise = startTokenFetch();
+        const wrapped = startTokenFetch().catch((err) => {
+            // Don't cache a rejection — the next prefetch/send must be able to
+            // start a fresh attempt instead of replaying a permanent failure.
+            if (pendingTokenPromise === wrapped) {
+                pendingTokenPromise = null;
+            }
+            throw err;
+        });
+        pendingTokenPromise = wrapped;
     }
     return pendingTokenPromise;
 }

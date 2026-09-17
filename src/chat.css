@@ -290,6 +290,11 @@
     font-size: 0.9rem;
 }
 
+#chat-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 #chat-input:focus {
     outline: none;
     border-color: var(--accent-blue, #00d2ff);
@@ -350,6 +355,10 @@
 
 .refresh-btn:hover {
     background: rgba(255, 45, 126, 0.35);
+}
+
+.context-ended-notice .refresh-btn + .refresh-btn {
+    margin-left: 8px;
 }
 
 /* =============================================
