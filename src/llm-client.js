@@ -7,7 +7,7 @@
 
 import { getTurnstileToken } from './turnstile.js';
 
-const BFF_URL = 'https://llm-bff-psi.vercel.app/api/chat';
+const BFF_URL = import.meta.env.VITE_BFF_CHAT_URL || 'https://llm-bff-psi.vercel.app/api/chat';
 
 // Max conversation turns to keep in history before declaring context exhausted.
 // Each turn = 1 user message + 1 model reply.

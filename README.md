@@ -41,6 +41,17 @@ The portfolio is architected holistically across two primary domains:
     - **Security**: All API keys and notification webhooks are managed securely on the backend; no sensitive identifiers are exposed in this public repository.
     - **Interconnect**: Communication is established via authenticated POST requests with IP-based rate limiting.
 
+### Local BFF (optional)
+
+Production builds with no env vars keep the current Vercel URLs. For local Vite → local BFF, copy `.env.example` to `.env.local` (gitignored) and point at your API:
+
+```
+VITE_BFF_CHAT_URL=http://127.0.0.1:3000/api/chat
+VITE_BFF_HIGHSCORE_URL=http://127.0.0.1:3000/api/game-highscore
+```
+
+Then `npm run dev`. Restart Vite after changing env files.
+
 ### BFF Coordination for Persona Behavior
 
 For full chatbot self-awareness (beyond frontend copy), update the system prompt in `repos/llm-bff` so the model consistently treats itself as evidence of Bradley's AI application work.
