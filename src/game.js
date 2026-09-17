@@ -21,7 +21,7 @@ import { generateObstacles, blocksProjectile, resolveCollision, steerAroundObsta
 import { track } from './analytics.js';
 
 const STORAGE_KEY = 'kitchan-survivor-v1';
-const HIGHSCORE_ENDPOINT = 'https://llm-bff-psi.vercel.app/api/game-highscore';
+const HIGHSCORE_ENDPOINT = import.meta.env.VITE_BFF_HIGHSCORE_URL || 'https://llm-bff-psi.vercel.app/api/game-highscore';
 
 // Lightweight request obfuscation, NOT real security — this is public JS, so
 // the scheme is readable by anyone who opens dev tools. It only exists to

@@ -1,7 +1,7 @@
 import { sendMessage, MAX_TURNS, suggestionForRetryHint } from './llm-client.js';
 import { track } from './analytics.js';
 import { mountMascot } from './mascot.js';
-import { prefetchTurnstileToken } from './turnstile.js';
+import { prefetchTurnstileToken, shouldHoldInputForTurnstile } from './turnstile.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatToggle   = document.getElementById('chat-toggle');
@@ -25,28 +25,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Turnstile gating: message #1 always sends immediately (see llm-client's
     // isFirstMessage), but message #2 onward needs a real verified token. We
     // start warming one up in the background as soon as the chat opens, and
-    // gate the input only if the user gets there before it's ready.
-    let turnstileReady = false;
+    // hold the input only while that prefetch is still in flight — a failure
+    // must not permanently disable the composer.
+    // prefetchStatus: 'idle' | 'pending' | 'ready' | 'failed'
+    let turnstileStatus = 'idle';
     let sendInFlight = false;
+    let turnstileRecoveryNotice = null;
 
     function beginTurnstilePrefetch() {
+        if (turnstileStatus === 'pending' || turnstileStatus === 'ready') return;
+        turnstileStatus = 'pending';
+        applyTurnstileGate();
         prefetchTurnstileToken()
             .then(() => {
-                turnstileReady = true;
+                turnstileStatus = 'ready';
+                turnstileRecoveryNotice?.remove();
+                turnstileRecoveryNotice = null;
                 applyTurnstileGate();
             })
             .catch(() => {
-                // A real attempt (and its own retries) happens when message #2
-                // is actually sent — nothing to do here but leave it not-ready.
+                turnstileStatus = 'failed';
+                applyTurnstileGate();
+                maybeShowTurnstileRecovery();
             });
     }
 
     // Enables/disables the input based on whether a message-2+ send would need
     // a Turnstile token that isn't ready yet. No-op while a send is already in
     // flight (that has its own disable/enable) or the session has ended.
+    // Failed/idle states stay usable so the visitor can retry; sendMessage still
+    // requires a token for message #2+.
     function applyTurnstileGate(options = {}) {
         if (contextExhausted || sendInFlight) return;
-        const needsVerification = history.length > 0 && !turnstileReady;
+        const needsVerification = shouldHoldInputForTurnstile(history.length, turnstileStatus);
         if (needsVerification) {
             chatInput.disabled = true;
             sendBtn.disabled = true;
@@ -57,6 +68,32 @@ document.addEventListener('DOMContentLoaded', () => {
             chatInput.placeholder = 'Type a message...';
             if (options.focus) chatInput.focus();
         }
+    }
+
+    function maybeShowTurnstileRecovery() {
+        if (turnstileRecoveryNotice || history.length === 0 || contextExhausted) return;
+        const notice = document.createElement('div');
+        notice.className = 'context-ended-notice';
+        notice.innerHTML = `
+            <span class="context-icon">⚠</span>
+            <strong>Session verification failed.</strong><br>
+            You can retry, send another message, or refresh the page.
+            <br><br>
+            <button type="button" id="turnstile-retry-btn" class="refresh-btn">↺ RETRY</button>
+            <button type="button" id="turnstile-refresh-btn" class="refresh-btn">REFRESH</button>
+        `;
+        chatHistory.appendChild(notice);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        turnstileRecoveryNotice = notice;
+        track('chat_turnstile_prefetch_failed');
+
+        document.getElementById('turnstile-retry-btn')?.addEventListener('click', () => {
+            track('chat_turnstile_retry_clicked');
+            notice.remove();
+            turnstileRecoveryNotice = null;
+            beginTurnstilePrefetch();
+        });
+        document.getElementById('turnstile-refresh-btn')?.addEventListener('click', () => location.reload());
     }
     const GAME_HINT_CHIP = '🎮 Wanna play a game?';
     const GAME_HINT_REPLY = "Heh, thought you'd never ask. There's a hidden game somewhere on this site — try the classic cheat code on your keyboard: ↑ ↑ ↓ ↓ ← → ← → B A. Good luck, minion. 🐛";
@@ -357,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---- Send ----
     async function handleSend() {
         const isFirstMessage = history.length === 0;
-        if (contextExhausted || (!isFirstMessage && !turnstileReady)) return;
+        if (contextExhausted || shouldHoldInputForTurnstile(history.length, turnstileStatus)) return;
 
         const text = chatInput.value.trim();
         if (!text) return;
@@ -416,6 +453,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // A completed non-first send either used a Turnstile token or a
+            // session token — don't keep holding the composer for prefetch.
+            if (!isFirstMessage) {
+                turnstileStatus = 'ready';
+                turnstileRecoveryNotice?.remove();
+                turnstileRecoveryNotice = null;
+            }
+
         } catch (e) {
             typingDiv.remove();
             // retryHint 'later' means a real backend/config problem, not something
@@ -437,6 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             sendInFlight = false;
             applyTurnstileGate({ focus: true });
+            if (turnstileStatus === 'failed') maybeShowTurnstileRecovery();
         }
     }
 
