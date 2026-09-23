@@ -283,6 +283,7 @@ async function loadModel() {
 
             // Hide Loader
             loaderDiv.style.opacity = '0';
+            loaderDiv.style.pointerEvents = 'none';
             setTimeout(() => {
                 loaderDiv.style.display = 'none';
                 setTimeout(() => {

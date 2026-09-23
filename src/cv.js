@@ -38,9 +38,12 @@ document.querySelectorAll('[data-section]').forEach(btn => {
         const section = btn.getAttribute('data-section');
         window.showSection(section);
         
-        if (btn.classList.contains('mobile-nav-btn')) {
+        if (btn.classList.contains('mobile-nav-btn') || btn.closest('.footer-links')) {
             document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            const mob = btn.classList.contains('mobile-nav-btn')
+                ? btn
+                : document.querySelector(`.mobile-nav-btn[data-section="${section}"]`);
+            mob?.classList.add('active');
         }
     });
 });

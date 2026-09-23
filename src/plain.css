@@ -32,6 +32,41 @@ body {
     border-radius: 4px;
 }
 
+/* Screen-only chrome. Positioning lives here (not inline) so the phone
+   layout can put the controls in normal flow instead of over the CV. */
+#print-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+#print-btn {
+    padding: 10px 20px;
+    background: #000;
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.cv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.lil-gui.no-print {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+}
+
 .print-actions {
     max-width: var(--page-width);
     margin: 20px auto 0;
@@ -244,16 +279,59 @@ li {
     }
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     .cv-document {
         margin: 0;
         padding: 30px 20px;
         border-radius: 0;
+        max-width: 100%;
     }
     .entry-header {
         flex-direction: column;
     }
     .entry-date {
         margin-top: 2px;
+    }
+
+    /* Keep print / QR controls in the page flow so they don't cover the
+       name, contact line, or summary, and so they can't widen the page. */
+    #print-controls {
+        position: static;
+        display: flex;
+        justify-content: flex-end;
+        padding: 12px 12px 0;
+        max-width: 100%;
+    }
+    #print-btn {
+        max-width: 100%;
+    }
+    .lil-gui.no-print {
+        position: static;
+        top: auto;
+        right: auto;
+        z-index: auto;
+        --width: 100%;
+        width: auto;
+        max-width: calc(100% - 24px);
+        margin: 8px 12px 0;
+    }
+    .cv-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .cv-header > div {
+        min-width: 0;
+        max-width: 100%;
+    }
+    #qr-wrapper > div {
+        margin-left: 0 !important;
+        margin-top: 0 !important;
+    }
+    #qr-wrapper img {
+        max-width: min(96px, 40vw);
+        height: auto;
+    }
+    html, body {
+        overflow-x: clip;
     }
 }

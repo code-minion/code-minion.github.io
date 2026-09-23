@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Compile entire HTML
     container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div class="cv-header">
             <div>
                 <h1>${cvData.contact.name}</h1>
                 <div class="header-contact">
@@ -184,6 +184,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup GUI
     const gui = new GUI({ title: 'QR Code Settings', container: document.body });
     gui.domElement.classList.add('no-print');
+    // Keep the panel between the print button and the CV. Fixed on desktop,
+    // in normal flow on a phone — either way it is not painted over the text.
+    const cvContainer = document.getElementById('cv-container');
+    if (cvContainer) document.body.insertBefore(gui.domElement, cvContainer);
     
     const saveSettings = () => localStorage.setItem('cv-qr-settings', JSON.stringify(settings));
 
@@ -201,10 +205,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         gui.controllers.forEach(c => c.updateDisplay());
     }}, 'reset').name('Reset to Defaults');
 
-    // Position GUI
-    gui.domElement.style.position = 'fixed';
-    gui.domElement.style.top = '80px';
-    gui.domElement.style.right = '20px';
-    gui.domElement.style.zIndex = '1000';
 });
 

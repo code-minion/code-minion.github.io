@@ -105,11 +105,14 @@
 
 #chat-history {
     flex-grow: 1;
+    min-height: 0;
     padding: 15px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    position: relative;
+    z-index: 2;
 }
 
 .chat-msg {
@@ -242,6 +245,18 @@
     animation: chipFadeIn 0.3s ease forwards;
     opacity: 0;
     text-align: center;
+    position: relative;
+    z-index: 2;
+    pointer-events: auto;
+}
+
+/* Turnstile is inserted between the transcript and the composer. Keep it in
+   flow under the scrollport so it cannot sit on top of the suggestion chips. */
+#cf-turnstile-container {
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 1;
+    max-width: 100%;
 }
 
 .chat-chip:hover {

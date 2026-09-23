@@ -19,6 +19,17 @@ const WIDGET_TIMEOUT_MS = 10000;
 const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
 let widgetId = null;
+
+/** Keep suggestion chips inside the chat scroller, above the Turnstile row. */
+function pinChatHistoryToEnd() {
+    const history = document.getElementById('chat-history');
+    if (!history) return;
+    const pin = () => { history.scrollTop = history.scrollHeight; };
+    pin();
+    requestAnimationFrame(pin);
+    setTimeout(pin, 400);
+}
+
 // The in-flight/resolved token fetch. Kept warm so a prefetch started early
 // (e.g. when the chat panel opens) is reused by the eventual getTurnstileToken()
 // call instead of starting a fresh, slower fetch right when the user hits send.
@@ -111,6 +122,8 @@ function renderWidgetAndWait() {
         container.style.display = 'none';
         container.style.justifyContent = 'center';
         container.style.margin = '10px 0';
+        container.style.position = 'relative';
+        container.style.zIndex = '1';
 
         const chatInputArea = document.querySelector('.chat-input-area');
         if (chatInputArea) {
@@ -127,6 +140,10 @@ function renderWidgetAndWait() {
     }
 
     container.style.display = 'flex'; // Show for challenge
+    // Showing the widget shrinks #chat-history. The suggestion chips live at
+    // the bottom of that scroller; pin them back into view so the widget
+    // (which sits just under the transcript) is not what receives the click.
+    pinChatHistoryToEnd();
 
     return new Promise((resolve, reject) => {
         let settled = false;

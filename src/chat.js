@@ -322,7 +322,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         currentChipsContainer = chipsDiv;
         chatHistory.appendChild(chipsDiv);
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+        const pinChips = () => { chatHistory.scrollTop = chatHistory.scrollHeight; };
+        pinChips();
+        requestAnimationFrame(pinChips);
     }
 
     function removeChips() {
