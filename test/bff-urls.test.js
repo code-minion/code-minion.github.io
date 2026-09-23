@@ -13,7 +13,7 @@ test('chat and highscore BFF URLs default to production and allow Vite overrides
 
     assert.match(
         chat,
-        /const BFF_URL = import\.meta\.env\.VITE_BFF_CHAT_URL \|\| 'https:\/\/llm-bff-psi\.vercel\.app\/api\/chat';/,
+        /const BFF_URL = import\.meta\.env\?\.VITE_BFF_CHAT_URL \|\| 'https:\/\/llm-bff-psi\.vercel\.app\/api\/chat';/,
     );
     assert.match(
         game,

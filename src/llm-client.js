@@ -7,13 +7,18 @@
 
 import { getTurnstileToken } from './turnstile.js';
 
-const BFF_URL = import.meta.env.VITE_BFF_CHAT_URL || 'https://llm-bff-psi.vercel.app/api/chat';
+const BFF_URL = import.meta.env?.VITE_BFF_CHAT_URL || 'https://llm-bff-psi.vercel.app/api/chat';
 
 // Max conversation turns to keep in history before declaring context exhausted.
 // Each turn = 1 user message + 1 model reply.
 // Gemini's flash models have a large context window, but we cap conservatively to
 // keep costs reasonable and ensure a clean UX signal when it ends.
 const MAX_TURNS = 20;
+
+// The chat BFF rejects prompts longer than this with
+// 400 {"error":"Invalid or oversized prompt","retryHint":"input"}.
+// 4000 is accepted; 4001 is not. Keep the client check in step with that.
+const MAX_PROMPT_CHARS = 4000;
 
 let cachedSessionToken = null;
 
@@ -62,7 +67,11 @@ export function suggestionForRetryHint(retryHint) {
  * @returns {Promise<{reply: string, finishReason: string}>}
  */
 export async function sendMessage(prompt, history = [], chatId = null, isFirstMessage = false) {
-    if (!prompt?.trim()) throw new ChatError('Prompt cannot be empty', 'input');
+    const text = prompt?.trim() ?? '';
+    if (!text) throw new ChatError('Prompt cannot be empty', 'input');
+    if (text.length > MAX_PROMPT_CHARS) {
+        throw new ChatError('Invalid or oversized prompt', 'input');
+    }
 
     let turnstileToken = null;
 
@@ -88,7 +97,7 @@ export async function sendMessage(prompt, history = [], chatId = null, isFirstMe
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                prompt,
+                prompt: text,
                 turnstileToken,
                 sessionToken: cachedSessionToken,
                 history,
@@ -121,4 +130,4 @@ export async function sendMessage(prompt, history = [], chatId = null, isFirstMe
     return { reply: data.response, finishReason: data.finishReason };
 }
 
-export { MAX_TURNS };
+export { MAX_TURNS, MAX_PROMPT_CHARS };

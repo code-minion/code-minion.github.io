@@ -1,4 +1,4 @@
-import { sendMessage, MAX_TURNS, suggestionForRetryHint } from './llm-client.js';
+import { sendMessage, MAX_TURNS, MAX_PROMPT_CHARS, suggestionForRetryHint } from './llm-client.js';
 import { track } from './analytics.js';
 import { mountMascot } from './mascot.js';
 import { prefetchTurnstileToken, shouldHoldInputForTurnstile } from './turnstile.js';
@@ -395,27 +395,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---- Send ----
     async function handleSend() {
-        const isFirstMessage = history.length === 0;
-        if (contextExhausted || shouldHoldInputForTurnstile(history.length, turnstileStatus)) return;
+        // Enter and a click on SEND can both land before either await. Take the
+        // slot synchronously so the second submit cannot reuse a one-time
+        // Turnstile token (the BFF answers that with 403).
+        if (sendInFlight || contextExhausted || shouldHoldInputForTurnstile(history.length, turnstileStatus)) return;
 
         const text = chatInput.value.trim();
         if (!text) return;
 
-        if (history.length === 0 && text !== chatInput.value.trim()) {
-             // Just keeping the if condition valid, tracking already handled above for chips
-        } else if (history.length === 0) {
-             track('chat_first_message', { type: 'typed' });
+        if (text.length > MAX_PROMPT_CHARS) {
+            addMessage('Invalid or oversized prompt', false);
+            return;
         }
 
+        const isFirstMessage = history.length === 0;
+        sendInFlight = true;
+        chatInput.value = '';
+        chatInput.disabled = true;
+        sendBtn.disabled = true;
+
+        if (isFirstMessage) track('chat_first_message', { type: 'typed' });
         track('chat_message_sent', { turnNumber: (history.length / 2) + 1 });
 
         removeChips();
 
-        addMessage(text, true);
-        chatInput.value = '';
-        sendInFlight = true;
-        chatInput.disabled = true;
-        sendBtn.disabled = true;
+        const userBubble = addMessage(text, true);
 
         const typingDiv = document.createElement('div');
         typingDiv.className = 'chat-msg bot-msg typing-indicator';
@@ -465,6 +469,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             typingDiv.remove();
+            // The BFF rejected the text itself (oversized / invalid). Drop the
+            // optimistic bubble so the transcript isn't left with a message
+            // that was never accepted. Put the draft back so it can be edited.
+            if (e.retryHint === 'input') {
+                userBubble.remove();
+                if (!chatInput.value) chatInput.value = text;
+            }
             // retryHint 'later' means a real backend/config problem, not something
             // the visitor can fix by retrying — treat that as unrecoverable and
             // leave the mascot showing error instead of reverting to idle.
@@ -489,8 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     sendBtn.addEventListener('click', handleSend);
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleSend();
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || e.repeat || e.shiftKey || e.isComposing) return;
+        e.preventDefault();
+        handleSend();
     });
     chatInput.addEventListener('input', () => {
         removeChips();
