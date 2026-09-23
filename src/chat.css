@@ -413,9 +413,15 @@
         border-radius: 0;
         border: none;
         z-index: 2100;
+        /* Snap open. A transform/opacity transition (and backdrop-filter)
+           makes Turnstile treat the widget as hidden and fail the challenge
+           on the first mobile send. */
         transform: none;
         opacity: 1;
         pointer-events: all;
+        transition: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
 
     .mobile-active .chat-header {

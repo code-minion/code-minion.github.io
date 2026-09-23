@@ -1,7 +1,7 @@
 import { sendMessage, MAX_TURNS, MAX_PROMPT_CHARS, suggestionForRetryHint } from './llm-client.js';
 import { track } from './analytics.js';
 import { mountMascot } from './mascot.js';
-import { prefetchTurnstileToken, shouldHoldInputForTurnstile } from './turnstile.js';
+import { prefetchTurnstileToken, shouldHoldInputForTurnstile, shouldShowTurnstileRecovery } from './turnstile.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatToggle   = document.getElementById('chat-toggle');
@@ -31,21 +31,44 @@ document.addEventListener('DOMContentLoaded', () => {
     let turnstileStatus = 'idle';
     let sendInFlight = false;
     let turnstileRecoveryNotice = null;
+    // A widget that starts during the open animation or the mobile keyboard
+    // resize fails fast. Retry a couple of times before telling the visitor
+    // verification failed — the first message itself does not need a token.
+    const QUIET_TURNSTILE_RETRIES = 2;
+    let quietRetriesLeft = QUIET_TURNSTILE_RETRIES;
+    let quietRetryTimer = null;
 
     function beginTurnstilePrefetch() {
         if (turnstileStatus === 'pending' || turnstileStatus === 'ready') return;
+        if (quietRetryTimer) {
+            clearTimeout(quietRetryTimer);
+            quietRetryTimer = null;
+        }
         turnstileStatus = 'pending';
         applyTurnstileGate();
         prefetchTurnstileToken()
             .then(() => {
                 turnstileStatus = 'ready';
+                quietRetriesLeft = QUIET_TURNSTILE_RETRIES;
                 turnstileRecoveryNotice?.remove();
                 turnstileRecoveryNotice = null;
                 applyTurnstileGate();
             })
-            .catch(() => {
+            .catch((err) => {
                 turnstileStatus = 'failed';
                 applyTurnstileGate();
+                const timedOut = String(err?.message || '').includes('timed out');
+                if (!timedOut && quietRetriesLeft > 0 && chatPanel.classList.contains('open')) {
+                    quietRetriesLeft -= 1;
+                    quietRetryTimer = setTimeout(() => {
+                        quietRetryTimer = null;
+                        if (turnstileStatus === 'failed' && chatPanel.classList.contains('open')) {
+                            beginTurnstilePrefetch();
+                        }
+                    }, 650);
+                    return;
+                }
+                quietRetriesLeft = 0;
                 maybeShowTurnstileRecovery();
             });
     }
@@ -71,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function maybeShowTurnstileRecovery() {
-        if (turnstileRecoveryNotice || history.length === 0 || contextExhausted) return;
+        if (turnstileRecoveryNotice || contextExhausted) return;
+        if (!shouldShowTurnstileRecovery(turnstileStatus, history.length, quietRetriesLeft)) return;
         const notice = document.createElement('div');
         notice.className = 'context-ended-notice';
         notice.innerHTML = `
@@ -91,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             track('chat_turnstile_retry_clicked');
             notice.remove();
             turnstileRecoveryNotice = null;
+            quietRetriesLeft = QUIET_TURNSTILE_RETRIES;
             beginTurnstilePrefetch();
         });
         document.getElementById('turnstile-refresh-btn')?.addEventListener('click', () => location.reload());
@@ -131,9 +156,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let viewportRetryTimer = null;
     if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', updateMobileLayout);
+        window.visualViewport.addEventListener('resize', () => {
+            updateMobileLayout();
+            // The keyboard resizes the sheet under an in-flight widget. Once
+            // the viewport settles, try again instead of keeping the failure.
+            if (!isMobile || turnstileStatus !== 'failed' || quietRetriesLeft <= 0) return;
+            if (!chatPanel.classList.contains('open')) return;
+            clearTimeout(viewportRetryTimer);
+            viewportRetryTimer = setTimeout(() => {
+                if (turnstileStatus === 'failed' && chatPanel.classList.contains('open')) {
+                    beginTurnstilePrefetch();
+                }
+            }, 400);
+        });
         window.visualViewport.addEventListener('scroll', updateMobileLayout);
+    }
+
+    function whenChatPanelReady(done) {
+        requestAnimationFrame(() => requestAnimationFrame(done));
+    }
+
+    function focusComposerSoon() {
+        if (contextExhausted) return;
+        if (!isMobile) {
+            chatInput.focus();
+            return;
+        }
+        // Focusing now opens the keyboard and moves the widget mid-challenge.
+        // Wait until the token lands, or a short cap, then focus.
+        const started = Date.now();
+        const tryFocus = () => {
+            if (contextExhausted || !chatPanel.classList.contains('open')) return;
+            const settled = turnstileStatus === 'ready' || turnstileStatus === 'failed';
+            if ((settled || Date.now() - started > 800) && !chatInput.disabled) {
+                chatInput.focus();
+                return;
+            }
+            setTimeout(tryFocus, 100);
+        };
+        setTimeout(tryFocus, 100);
     }
 
     function openChat(source = 'toggle') {
@@ -142,13 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (speechBubble) {
             speechBubble.style.display = 'none'; // permanently hide after first interaction
         }
-        if (!contextExhausted) {
-            chatInput.focus();
-        }
         setMascotState('wave');
-        beginTurnstilePrefetch();
-        applyTurnstileGate();
         track('chat_opened', { source });
+        whenChatPanelReady(() => {
+            beginTurnstilePrefetch();
+            focusComposerSoon();
+        });
     }
 
     // ---- Toggle open logic (shared by 3d.js and UI) ----
@@ -494,7 +556,10 @@ document.addEventListener('DOMContentLoaded', () => {
             track('chat_error_shown', { retryHint: e.retryHint || 'none' });
         } finally {
             sendInFlight = false;
-            applyTurnstileGate({ focus: true });
+            applyTurnstileGate({ focus: turnstileStatus !== 'pending' });
+            // A prefetch that lost the race with the mobile open can be
+            // 'failed' by the time the first reply lands. That reply did not
+            // need a token — retry quietly instead of covering it.
             if (turnstileStatus === 'failed') maybeShowTurnstileRecovery();
         }
     }

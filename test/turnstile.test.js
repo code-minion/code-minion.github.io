@@ -68,6 +68,18 @@ async function loadTurnstileModule() {
     return import(`../src/turnstile.js?test=${Date.now()}-${Math.random()}`);
 }
 
+test('shouldShowTurnstileRecovery stays quiet until retries are exhausted after a turn', async () => {
+    installDom({ hostname: 'localhost' });
+    const { shouldShowTurnstileRecovery } = await loadTurnstileModule();
+
+    assert.equal(shouldShowTurnstileRecovery('failed', 0, 0), false);
+    assert.equal(shouldShowTurnstileRecovery('failed', 2, 2), false);
+    assert.equal(shouldShowTurnstileRecovery('failed', 2, 1), false);
+    assert.equal(shouldShowTurnstileRecovery('failed', 2, 0), true);
+    assert.equal(shouldShowTurnstileRecovery('pending', 2, 0), false);
+    assert.equal(shouldShowTurnstileRecovery('ready', 2, 0), false);
+});
+
 test('shouldHoldInputForTurnstile only while a prefetch is in flight after the first turn', async () => {
     installDom({ hostname: 'localhost' });
     const { shouldHoldInputForTurnstile } = await loadTurnstileModule();
@@ -120,6 +132,41 @@ test('a failed prefetch is not cached, so a later send can retry', async () => {
 
     const token = await getTurnstileToken();
     assert.equal(token, 'token-from-retry');
+});
+
+test('widget render waits until the chat panel is visible, and uses a flexible size on a phone width', async () => {
+    const { scripts } = installDom({ hostname: 'example.com' });
+    let checks = 0;
+    const panel = {
+        getBoundingClientRect() {
+            checks += 1;
+            if (checks < 3) return { width: 0, height: 0 };
+            return { width: 390, height: 700 };
+        },
+    };
+    const origGet = document.getElementById;
+    document.getElementById = (id) => (id === 'chat-panel' ? panel : origGet(id));
+    globalThis.getComputedStyle = () => ({ opacity: checks < 3 ? '0' : '1' });
+    globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+    window.innerWidth = 390;
+
+    const { prefetchTurnstileToken } = await loadTurnstileModule();
+    const pending = prefetchTurnstileToken();
+
+    let checksAtRender = null;
+    window.turnstile = {
+        render(_sel, opts) {
+            checksAtRender = checks;
+            assert.equal(opts.size, 'flexible');
+            queueMicrotask(() => opts.callback('visible-token'));
+            return 'widget-visible';
+        },
+        remove() {},
+    };
+    scripts[0].onload();
+
+    assert.equal(await pending, 'visible-token');
+    assert.ok(checksAtRender >= 3, 'render runs only after the panel has a real box');
 });
 
 test('getTurnstileToken retries after a previous prefetch rejection', async () => {

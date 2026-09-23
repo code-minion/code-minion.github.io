@@ -50,6 +50,45 @@ export function shouldHoldInputForTurnstile(historyLength, prefetchStatus) {
 }
 
 /**
+ * The recovery banner means the next send still has no token. A failed warmup
+ * before any turn, or one that still has a quiet retry left, stays silent so a
+ * successful first reply is not covered by "Session verification failed."
+ */
+export function shouldShowTurnstileRecovery(prefetchStatus, historyLength, retriesRemaining) {
+    return prefetchStatus === 'failed' && historyLength > 0 && retriesRemaining <= 0;
+}
+
+function nextFrame() {
+    return new Promise((resolve) => {
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => resolve());
+        else setTimeout(resolve, 16);
+    });
+}
+
+/**
+ * Turnstile rejects challenges that start while the host is opacity 0, mid
+ * transform, or still 0×0 — the mobile sheet hits that window when it opens.
+ * Wait until #chat-panel has a real box and is effectively opaque. No-op when
+ * there is no measurable panel (tests, or a widget mounted on document.body).
+ */
+async function waitForChatPanelReady() {
+    const panel = document.getElementById('chat-panel');
+    if (!panel || typeof panel.getBoundingClientRect !== 'function') return;
+
+    const deadline = Date.now() + 1500;
+    while (Date.now() < deadline) {
+        const rect = panel.getBoundingClientRect();
+        let opacity = 1;
+        if (typeof getComputedStyle === 'function') {
+            const parsed = parseFloat(getComputedStyle(panel).opacity);
+            if (!Number.isNaN(parsed)) opacity = parsed;
+        }
+        if (rect.width >= 40 && rect.height >= 80 && opacity >= 0.95) return;
+        await nextFrame();
+    }
+}
+
+/**
  * Injects the Cloudflare Turnstile script if not already loaded.
  * Rejects on network/blocker errors and on timeout so a hung load cannot
  * leave the chat waiting forever.
@@ -112,7 +151,7 @@ function loadTurnstileScript() {
 /**
  * Renders (or re-renders) the widget once and resolves with a single-use token.
  */
-function renderWidgetAndWait() {
+async function renderWidgetAndWait() {
     // Find or create the hidden container div for the widget
     let container = document.getElementById('cf-turnstile-container');
     if (!container) {
@@ -145,6 +184,14 @@ function renderWidgetAndWait() {
     // (which sits just under the transcript) is not what receives the click.
     pinChatHistoryToEnd();
 
+    // The mobile panel is a fixed sheet that fades/transforms in and then
+    // resizes with the keyboard. Rendering before that layout commits makes
+    // Cloudflare's iframe fail the visibility check (postMessage / 400).
+    await waitForChatPanelReady();
+
+    const narrow = typeof window.innerWidth === 'number' && window.innerWidth <= 768;
+    if (narrow) container.style.width = '100%';
+
     return new Promise((resolve, reject) => {
         let settled = false;
         const finish = (fn) => (value) => {
@@ -161,6 +208,9 @@ function renderWidgetAndWait() {
 
         widgetId = window.turnstile.render('#cf-turnstile-container', {
             sitekey: TURNSTILE_SITE_KEY,
+            // Flexible tracks the composer width so the 300px checkbox is not
+            // clipped on a ~390px sheet. Desktop keeps the default size.
+            ...(narrow ? { size: 'flexible' } : {}),
             callback: (token) => finish(resolve)(token),
             'error-callback': () => finish(reject)(new Error('Turnstile widget failed')),
             'expired-callback': () => finish(reject)(new Error('Turnstile token expired')),

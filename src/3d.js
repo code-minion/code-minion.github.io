@@ -6,6 +6,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { Billboard } from './billboard.js';
 import cvData from './cv-data.json';
 import { track } from './analytics.js';
+import { sectionFromHash } from './nav-hash.js';
 
 // =============================================
 // THE_WEBSITE_CORE — src/3d.js
@@ -31,6 +32,38 @@ gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 let codeMesh;
 let codePresets = [], currentPreset = 0, lastPresetTime = 0;
 let activeBillboards = [];
+let sceneReady = false;
+let sectionOverride = null;
+
+function syncActiveNav(action) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-action') === action));
+    document.querySelectorAll('.mobile-nav-btn').forEach(i => i.classList.toggle('active', i.getAttribute('data-action') === action));
+}
+
+function selectSection(action, { updateHash = false } = {}) {
+    const section = sectionFromHash('#' + (action || ''));
+    if (updateHash && section) {
+        const next = '#' + section;
+        if ((window.location.hash || '').toLowerCase() !== next) {
+            history.replaceState(null, '', next);
+        }
+    }
+    if (section) sectionOverride = section;
+
+    // Billboards use the camera framing that exists once the model has loaded.
+    // Remember the section (and light the nav) until then; cv.html can go now.
+    if (action !== 'cv' && !sceneReady) {
+        syncActiveNav(action);
+        return;
+    }
+    handleNavAction(action);
+}
+
+function onHashChange() {
+    const section = sectionFromHash(window.location.hash);
+    if (!section) return;
+    selectSection(section);
+}
 
 // ---- INITIALIZATION ----
 function init() {
@@ -159,7 +192,7 @@ function init() {
             e.preventDefault();
             navItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-            handleNavAction(item.getAttribute('data-action'));
+            selectSection(item.getAttribute('data-action'), { updateHash: true });
         });
     });
 
@@ -169,9 +202,16 @@ function init() {
             e.preventDefault();
             mobNavItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-            handleNavAction(item.getAttribute('data-action'));
+            selectSection(item.getAttribute('data-action'), { updateHash: true });
         });
     });
+
+    const initialHash = sectionFromHash(window.location.hash);
+    if (initialHash) {
+        sectionOverride = initialHash;
+        syncActiveNav(initialHash);
+    }
+    window.addEventListener('hashchange', onHashChange);
 
     document.getElementById('mobile-overlay-close')?.addEventListener('click', () => {
         document.getElementById('mobile-overlay-panel')?.classList.add('hidden');
@@ -297,8 +337,10 @@ async function loadModel() {
                 }, 1000);
             }, 500);
 
-            // Auto-spawn the home billboard so it's visible immediately on load
-            handleNavAction('home');
+            // Open the fragment section when the model is ready. A bare load
+            // (no hash, no click yet) still lands on the home billboard.
+            sceneReady = true;
+            handleNavAction(sectionOverride || sectionFromHash(window.location.hash) || 'home');
         },
         (xhr) => {
             if (xhr.total > 0) {
@@ -314,6 +356,9 @@ async function loadModel() {
             console.error('SYSTEM: loadModel ERROR:', error);
             if (terminalContent) terminalContent.innerHTML = `<p class="neon-pink">ERROR: ${error.message}</p>`;
             if (loaderDiv) loaderDiv.classList.add('fade-out');
+            // A failed model must not swallow a #projects / #contact deep link.
+            sceneReady = true;
+            handleNavAction(sectionOverride || sectionFromHash(window.location.hash) || 'home');
         }
     );
 }
@@ -572,8 +617,7 @@ function handleNavAction(action) {
     }
 
     // Keep active state synchronized
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-action') === action));
-    document.querySelectorAll('.mobile-nav-btn').forEach(i => i.classList.toggle('active', i.getAttribute('data-action') === action));
+    syncActiveNav(action);
 
     const isMobile = window.innerWidth <= 768;
 
