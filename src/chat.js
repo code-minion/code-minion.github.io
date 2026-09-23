@@ -22,18 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentChipsContainer = null;
     const chatId = crypto.randomUUID();
 
-    // Turnstile gating: message #1 always sends immediately (see llm-client's
-    // isFirstMessage), but message #2 onward needs a real verified token. We
-    // start warming one up in the background as soon as the chat opens, and
-    // hold the input only while that prefetch is still in flight — a failure
-    // must not permanently disable the composer.
+    // The BFF requires a Turnstile token on every send that doesn't already
+    // have a server sessionToken, including the first message. Warm one up
+    // when the chat opens. Hold the composer only while a later prefetch is
+    // still in flight — a failure must not permanently disable it.
     // prefetchStatus: 'idle' | 'pending' | 'ready' | 'failed'
     let turnstileStatus = 'idle';
     let sendInFlight = false;
     let turnstileRecoveryNotice = null;
     // A widget that starts during the open animation or the mobile keyboard
     // resize fails fast. Retry a couple of times before telling the visitor
-    // verification failed — the first message itself does not need a token.
+    // verification failed. The send itself still waits for a real token.
     const QUIET_TURNSTILE_RETRIES = 2;
     let quietRetriesLeft = QUIET_TURNSTILE_RETRIES;
     let quietRetryTimer = null;
@@ -493,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const historyWithContext = getHistoryWithSessionContext();
-            const { reply: rawReply, finishReason } = await sendMessage(text, historyWithContext, chatId, isFirstMessage);
+            const { reply: rawReply, finishReason, sessionReady } = await sendMessage(text, historyWithContext, chatId, isFirstMessage);
 
             const { reply, chips } = parseChips(rawReply);
 
@@ -521,12 +520,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // A completed non-first send either used a Turnstile token or a
-            // session token — don't keep holding the composer for prefetch.
-            if (!isFirstMessage) {
+            // The token just posted was single-use. A returned session covers
+            // the next send; otherwise warm a fresh token for it.
+            if (sessionReady) {
                 turnstileStatus = 'ready';
                 turnstileRecoveryNotice?.remove();
                 turnstileRecoveryNotice = null;
+            } else {
+                turnstileStatus = 'idle';
+                beginTurnstilePrefetch();
             }
 
         } catch (e) {

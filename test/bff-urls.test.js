@@ -21,4 +21,7 @@ test('chat and highscore BFF URLs default to production and allow Vite overrides
     );
     assert.match(example, /VITE_BFF_CHAT_URL=http:\/\/127\.0\.0\.1:3000\/api\/chat/);
     assert.match(example, /VITE_BFF_HIGHSCORE_URL=http:\/\/127\.0\.0\.1:3000\/api\/game-highscore/);
+    assert.match(game, /getTurnstileToken\(\)/);
+    assert.match(game, /turnstileToken,/);
+    assert.match(game, /if \(!res\.ok\) throw new Error\(`highscore \$\{res\.status\}`\);/);
 });

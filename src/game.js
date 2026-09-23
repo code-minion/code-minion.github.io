@@ -19,6 +19,7 @@ import { WEAPON_DEFS, STARTING_WEAPON } from './game-weapons.js';
 import { PASSIVE_DEFS, defaultPassives, buildLevelUpChoices } from './game-items.js';
 import { generateObstacles, blocksProjectile, resolveCollision, steerAroundObstacles } from './game-obstacles.js';
 import { track } from './analytics.js';
+import { getTurnstileToken } from './turnstile.js';
 
 const STORAGE_KEY = 'kitchan-survivor-v1';
 const HIGHSCORE_ENDPOINT = import.meta.env.VITE_BFF_HIGHSCORE_URL || 'https://llm-bff-psi.vercel.app/api/game-highscore';
@@ -923,7 +924,10 @@ function initGame() {
         highScoreSubmitBtn.disabled = true;
         highScoreSubmitBtn.textContent = 'SENDING…';
         try {
-            await fetch(HIGHSCORE_ENDPOINT, {
+            // Same Turnstile site key as chat. The BFF returns 401 when
+            // turnstileToken is missing and 403 when it doesn't verify.
+            const turnstileToken = await getTurnstileToken();
+            const res = await fetch(HIGHSCORE_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -934,8 +938,10 @@ function initGame() {
                         rank: currentRank(meta.totalEarned),
                         playMinutes: runState ? Math.round(runState.timeSec / 60) : 0,
                     }),
+                    turnstileToken,
                 }),
             });
+            if (!res.ok) throw new Error(`highscore ${res.status}`);
             highScoreSubmitBtn.textContent = 'SENT ✓';
         } catch {
             highScoreSubmitBtn.disabled = false;
