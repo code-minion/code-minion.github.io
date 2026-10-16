@@ -1,0 +1,101 @@
+name: Rollback GitHub Pages
+
+# Dispatch this workflow from master. The github-pages environment only
+# allows that branch, and this job does not rebuild the site.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA or release tag (build-<shortsha>)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Require master branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "Run rollback from master so the github-pages branch policy allows the deployment." >&2
+            exit 1
+          fi
+
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          ref="${REF}"
+          ref="${ref#"${ref%%[![:space:]]*}"}"
+          ref="${ref%"${ref##*[![:space:]]}"}"
+          ref="${ref#refs/tags/}"
+
+          if [ -z "$ref" ]; then
+            echo "ref is empty." >&2
+            exit 1
+          fi
+
+          # Tags published by pages.yml are build- plus the first 7 hex chars of the SHA.
+          if printf '%s' "$ref" | grep -Eq '^[Bb][Uu][Ii][Ll][Dd]-[0-9a-fA-F]{7}$'; then
+            short=$(printf '%s' "$ref" | cut -c7- | tr '[:upper:]' '[:lower:]')
+            tag="build-${short}"
+          elif printf '%s' "$ref" | grep -Eq '^[0-9a-fA-F]{7,40}$'; then
+            short=$(printf '%s' "$ref" | cut -c1-7 | tr '[:upper:]' '[:lower:]')
+            tag="build-${short}"
+          else
+            echo "ref must be a commit SHA or a release tag such as build-abc1234." >&2
+            exit 1
+          fi
+
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release ${tag} was not found. A master Pages build has to publish it first." >&2
+            exit 1
+          fi
+
+          echo "Resolved rollback release: ${tag}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Download dist.zip
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern dist.zip \
+            --clobber \
+            --dir release
+          unzip -q release/dist.zip
+          test -f dist/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
