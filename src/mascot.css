@@ -39,6 +39,8 @@
 .chat-header {
     padding: 3px 15px 0 12px;
     align-items: flex-end;
+    position: relative;
+    z-index: 3;
 }
 .chat-header-identity {
     display: flex;
@@ -77,17 +79,25 @@
 .chat-header-text {
     align-self: center;
     padding-bottom: 0;
+    /* Glyph bounds sit slightly below the flex mid; shift ink onto the header midline. */
+    transform: translateY(-1px);
     min-width: 0;
     position: relative;
 }
-/* Reserve the typing status line so the title does not jump when it appears. */
+/* Status sits just under the subtitle, out of flow, so the visible
+   title+subtitle pair stays centred and does not jump when it appears. */
 .cm-status {
+    position: absolute;
+    left: 0;
+    top: 100%;
     font-size: 0.62rem;
     letter-spacing: 0.5px;
     color: var(--accent-blue, #00d2ff);
     opacity: 0.85;
-    height: 0.9rem;
     line-height: 0.9rem;
+    height: auto;
+    white-space: nowrap;
+    pointer-events: none;
 }
 .close-chat {
     align-self: center;

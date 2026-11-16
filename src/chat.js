@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ring: '#ff2d7e',
             handScale: 1.6,
             swingGain: 1.25,
+            ss: 1,
+            nods: true,
         })
         : null;
 
