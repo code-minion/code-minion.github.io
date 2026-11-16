@@ -1,19 +1,63 @@
 import { sendMessage, MAX_TURNS, MAX_PROMPT_CHARS, suggestionForRetryHint } from './llm-client.js';
 import { track } from './analytics.js';
-import { mountMascot } from './mascot.js';
+import { create as createMascot } from './mascot.js';
 import { prefetchTurnstileToken, shouldHoldInputForTurnstile, shouldShowTurnstileRecovery } from './turnstile.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const chatToggle   = document.getElementById('chat-toggle');
     const chatPanel    = document.getElementById('chat-panel');
-    const closeChat    = document.getElementById('close-chat');
+    const closeChatBtn = document.getElementById('close-chat');
     const chatInput    = document.getElementById('chat-input');
     const sendBtn      = document.getElementById('chat-send');
     const chatHistory  = document.getElementById('chat-history');
     const speechBubble = document.getElementById('speech-bubble');
     const chatMascot   = document.getElementById('chat-mascot');
+    const statusEl     = document.getElementById('cm-status');
+    const launcherHost = chatToggle?.querySelector('[data-mascot="launcher"]');
+    const headerHost   = chatMascot?.querySelector('[data-mascot="header"]');
 
-    const setMascotState = chatMascot ? mountMascot(chatMascot) : () => {};
+    function launcherShadowScale() {
+        const px = (chatToggle?.getBoundingClientRect().width || 60) - 2;
+        return Math.max(1, 1.1 * (312 / px) / (1.697 * 3.8));
+    }
+
+    const launcher = launcherHost
+        ? createMascot(launcherHost, { ss: launcherShadowScale(), nods: true })
+        : null;
+    const header = headerHost
+        ? createMascot(headerHost, {
+            hand: true,
+            vb: '90 8 350 412',
+            c: [256, 196, 156],
+            clipRect: 420,
+            ring: '#ff2d7e',
+            handScale: 1.6,
+            swingGain: 1.25,
+        })
+        : null;
+
+    // Site widget states -> paper clips. error -> idle is provisional:
+    // the module has no error clip yet (Mascot Designer's suggestion).
+    const MASCOT_CLIP = {
+        idle: 'idle',
+        wave: 'hello',
+        loading: 'thinking',
+        happy: 'pleased',
+        error: 'idle',
+    };
+    let helloTimer = 0;
+    let chatUiOpen = false;
+
+    function setMascotState(state) {
+        if (header) header.go(MASCOT_CLIP[state] || 'idle');
+        if (statusEl) statusEl.textContent = state === 'loading' ? 'typing…' : '';
+    }
+
+    function perkLauncher() {
+        if (launcher && launcher.state === 'idle') launcher.go('perk');
+    }
+    chatToggle.addEventListener('mouseenter', perkLauncher);
+    chatToggle.addEventListener('focus', perkLauncher);
 
     // Conversation history for the BFF — array of {role, text}
     // role is 'user' or 'model' (Gemini convention)
@@ -199,37 +243,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openChat(source = 'toggle') {
+        const alreadyOpen = chatUiOpen && chatPanel.classList.contains('open');
+        chatUiOpen = true;
         chatPanel.classList.add('open');
+        chatToggle.setAttribute('aria-expanded', 'true');
         updateMobileLayout();
         if (speechBubble) {
             speechBubble.style.display = 'none'; // permanently hide after first interaction
         }
-        setMascotState('wave');
-        track('chat_opened', { source });
-        whenChatPanelReady(() => {
-            beginTurnstilePrefetch();
-            focusComposerSoon();
-        });
+        if (!alreadyOpen) {
+            clearTimeout(helloTimer);
+            // Hello starts 350ms after the panel fade-in begins, per the mockup.
+            helloTimer = setTimeout(() => setMascotState('wave'), 350);
+            track('chat_opened', { source });
+            whenChatPanelReady(() => {
+                beginTurnstilePrefetch();
+                focusComposerSoon();
+            });
+        }
+    }
+
+    function closeChat() {
+        if (!chatUiOpen && !chatPanel.classList.contains('open')) return;
+        chatUiOpen = false;
+        chatPanel.classList.remove('open');
+        chatToggle.setAttribute('aria-expanded', 'false');
+        updateMobileLayout();
+        clearTimeout(helloTimer);
+        helloTimer = 0;
+        setMascotState('idle');
     }
 
     // ---- Toggle open logic (shared by 3d.js and UI) ----
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'class') {
-                if (chatPanel.classList.contains('open') && speechBubble) {
-                    speechBubble.style.display = 'none';
-                }
-            }
-        });
+    // 3d.js opens the panel by adding .open; keep mascot and prefetch in sync.
+    const observer = new MutationObserver(() => {
+        const isOpen = chatPanel.classList.contains('open');
+        if (isOpen && !chatUiOpen) {
+            openChat('character');
+        } else if (!isOpen && chatUiOpen) {
+            closeChat();
+        }
     });
-    observer.observe(chatPanel, { attributes: true });
+    observer.observe(chatPanel, { attributes: true, attributeFilter: ['class'] });
 
     chatToggle.addEventListener('click', () => {
         if (!chatPanel.classList.contains('open')) {
             openChat('toggle');
         } else {
-            chatPanel.classList.remove('open');
-            updateMobileLayout();
+            closeChat();
         }
     });
 
@@ -240,10 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    closeChat.addEventListener('click', () => {
-        chatPanel.classList.remove('open');
-        updateMobileLayout();
-    });
+    closeChatBtn.addEventListener('click', closeChat);
 
     function escapeHtml(text) {
         return text
@@ -541,10 +599,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!chatInput.value) chatInput.value = text;
             }
             // retryHint 'later' means a real backend/config problem, not something
-            // the visitor can fix by retrying — treat that as unrecoverable and
-            // leave the mascot showing error instead of reverting to idle.
-            const isUnrecoverable = e.retryHint === 'later';
-            setMascotState('error', { persistent: isUnrecoverable });
+            // the visitor can fix by retrying. The paper mascot has no error clip
+            // yet, so this maps to idle (provisional).
+            setMascotState('error');
             // Show the backend's user-facing message as-is (it's already written to be
             // shown to a visitor); fall back to a generic notice for unexpected errors
             // instead of leaking raw exception text like "BFF returned 500".

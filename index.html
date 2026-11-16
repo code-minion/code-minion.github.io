@@ -110,7 +110,7 @@
     </div>
 
     <!-- Chat UI Widget -->
-    <button id="chat-toggle">💬</button>
+    <button id="chat-toggle" aria-label="Open chat with CODEMINION_AI" aria-expanded="false" aria-controls="chat-panel"><span class="cm-avatar" data-mascot="launcher"></span></button>
 
     <!-- Mobile-only entry point to the hidden game: the Konami code needs a
          keyboard, so touch-only visitors have no way to trigger it otherwise. -->
@@ -126,13 +126,17 @@
     <div id="chat-panel">
         <div class="chat-header">
             <div class="chat-header-identity">
-                <div id="chat-mascot" class="chat-avatar mascot-avatar" role="img" aria-label="CODEMINION_AI"></div>
+                <div id="chat-mascot" class="cm-avatar" role="img" aria-label="CODEMINION_AI">
+                    <span class="cm-glow"></span>
+                    <span data-mascot="header"></span>
+                </div>
                 <div class="chat-header-text">
                     <span class="chat-title">CODEMINION_AI</span>
                     <span class="chat-subtitle">AI Representative</span>
+                    <span class="cm-status" id="cm-status" aria-live="polite"></span>
                 </div>
             </div>
-            <button class="close-chat" id="close-chat">&times;</button>
+            <button class="close-chat" id="close-chat" aria-label="Close chat">&times;</button>
         </div>
         <div id="chat-history">
             <div class="chat-msg bot-msg">Hi! I'm CODEMINION_AI — Bradley's AI representative.<br><br>Ask me anything

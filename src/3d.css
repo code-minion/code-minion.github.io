@@ -532,3 +532,9 @@ body {
     text-shadow: 0 0 10px var(--accent-pink);
     font-weight: 600;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    #speech-bubble {
+        animation: none;
+    }
+}
